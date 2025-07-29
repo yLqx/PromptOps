@@ -1,0 +1,65 @@
+Create a full-stack SaaS web app called **PromptOps**.
+
+🌐 General Requirements:
+- Stack: Node.js with Express.js backend, PostgreSQL database, and Tailwind CSS for frontend styling.
+- Use EJS (or React if easier) for templating.
+- Hosting on Replit, fully runnable and structured in monorepo or clear folders.
+
+🎨 Design & UI:
+- Modern, clean UI
+- Color scheme: Dark gray background with green/light green accents
+- Responsive design (mobile + desktop)
+- Smooth animations and transitions
+- Add footer: “⚡ Powered by Monzed” centered at bottom of each page
+
+🔐 Auth:
+- User authentication (email + password) with session management
+- Use JWT or secure cookies
+
+📊 Dashboard:
+- After login, user lands on Control Dashboard
+- Show number of prompts used, history of runs, plan info, and quick test prompt area
+- Admin page (for internal use) to manage users/plans (can be basic)
+
+💡 Core Features:
+- Allow users to:
+  - Create and save prompts
+  - See history of prompt runs
+  - Edit prompt versions
+  - Test prompt with AI (GPT or Gemini)
+- Free plan: Max 5 saved prompts
+- Paid plans:
+  - **Pro Plan**: $19/month – 100 prompts
+  - **Team Plan**: $49/month – Unlimited prompts + team access
+
+🤖 AI Integration:
+- Use **ChatGPT (GPT-4o)** or **Gemini Pro** — whichever is more reliable and free or low cost at scale
+  - If Gemini is free via Google AI Studio, default to that with optional GPT fallback
+  - Code AI logic in a separate file/service
+  - Async call the model on prompt test button, show output on dashboard
+
+💳 Stripe Integration:
+- Use Stripe Checkout or Stripe Billing
+- Free plan automatically assigned to new users
+- Billing dashboard with ability to upgrade/cancel plan
+
+📦 Tech Stack Summary:
+- Backend: Node.js, Express.js
+- Frontend: Tailwind CSS + EJS or React
+- Database: PostgreSQL
+- Auth: JWT or secure cookie sessions
+- Payment: Stripe
+- AI API: Gemini Pro (if free), fallback to GPT-4o
+
+🧪 Testing:
+- Add basic input validation
+- Protect all user routes
+- Free plan users blocked from adding > 5 prompts
+
+💼 Extras:
+- Add seed user + seed prompts for demo
+- Show usage stats on dashboard (e.g. prompts used/left)
+- Include README file with setup instructions
+- Make entire codebase clean and modular
+
+Final product should be fully functional SaaS app that’s easy to extend.

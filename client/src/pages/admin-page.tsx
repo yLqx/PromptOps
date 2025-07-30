@@ -16,8 +16,6 @@ import {
   TrendingUp,
   Activity,
   DollarSign,
-  UserCheck,
-  Mail,
   Clock,
   AlertTriangle,
   CheckCircle,
@@ -56,17 +54,21 @@ export default function AdminPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [adminResponse, setAdminResponse] = useState("");
 
   const { data: stats } = useQuery({
     queryKey: ["/api/admin/stats"],
+    enabled: user?.email === "admin@promptops.com",
   });
 
-  const { data: users } = useQuery({
+  const { data: users = [] } = useQuery({
     queryKey: ["/api/admin/users"],
+    enabled: user?.email === "admin@promptops.com",
   });
 
-  const { data: tickets } = useQuery({
+  const { data: tickets = [] } = useQuery({
     queryKey: ["/api/admin/tickets"],
+    enabled: user?.email === "admin@promptops.com",
   });
 
   const updateTicketMutation = useMutation({
@@ -78,6 +80,7 @@ export default function AdminPage() {
       toast({ title: "Ticket updated successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
       setSelectedTicket(null);
+      setAdminResponse("");
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -97,31 +100,31 @@ export default function AdminPage() {
     },
   });
 
-  const handleTicketUpdate = (status: string, adminResponse?: string) => {
+  const handleTicketUpdate = (status: string, response?: string) => {
     if (selectedTicket) {
       updateTicketMutation.mutate({ 
         id: selectedTicket.id, 
         status, 
-        adminResponse 
+        adminResponse: response || adminResponse 
       });
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "urgent": return "bg-red-500";
-      case "medium": return "bg-yellow-500";
-      case "low": return "bg-green-500";
-      default: return "bg-gray-500";
+      case "urgent": return "bg-red-500 text-white";
+      case "medium": return "bg-yellow-500 text-white";
+      case "low": return "bg-green-500 text-white";
+      default: return "bg-gray-500 text-white";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "open": return "bg-blue-500";
-      case "in_progress": return "bg-yellow-500";
-      case "closed": return "bg-green-500";
-      default: return "bg-gray-500";
+      case "open": return "bg-blue-500 text-white";
+      case "in_progress": return "bg-yellow-500 text-white";
+      case "closed": return "bg-green-500 text-white";
+      default: return "bg-gray-500 text-white";
     }
   };
 
@@ -264,7 +267,7 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {users?.map((user: User) => (
+                        {users.map((user: User) => (
                           <tr key={user.id} className="border-b border-slate-700">
                             <td className="py-3">
                               <div>
@@ -282,7 +285,7 @@ export default function AdminPage() {
                                 {user.plan.toUpperCase()}
                               </Badge>
                             </td>
-                            <td className="py-3 text-white">{user.promptsUsed}</td>
+                            <td className="py-3 text-white">{user.promptsUsed || 0}</td>
                             <td className="py-3 text-slate-300">
                               {new Date(user.createdAt).toLocaleDateString()}
                             </td>
@@ -306,103 +309,106 @@ export default function AdminPage() {
               <h2 className="text-3xl font-bold text-white">Support Tickets</h2>
               
               <div className="grid gap-4">
-                {tickets?.map((ticket: SupportTicket) => (
-                  <Card key={ticket.id} className="bg-slate-800 border-slate-700">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-white font-semibold">{ticket.subject}</h3>
-                            <Badge className={`${getPriorityColor(ticket.priority)} text-white`}>
-                              {ticket.priority.toUpperCase()}
-                            </Badge>
-                            <Badge className={`${getStatusColor(ticket.status)} text-white`}>
-                              {ticket.status.replace("_", " ").toUpperCase()}
-                            </Badge>
-                          </div>
-                          <p className="text-slate-300 text-sm mb-2">{ticket.description}</p>
-                          <div className="flex items-center gap-4 text-xs text-slate-400">
-                            <span>Category: {ticket.category}</span>
-                            <span>Created: {new Date(ticket.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-white"
-                                onClick={() => setSelectedTicket(ticket)}
-                              >
-                                <Reply className="h-4 w-4 mr-1" />
-                                Respond
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="bg-slate-800 border-slate-700">
-                              <DialogHeader>
-                                <DialogTitle className="text-white">Respond to Ticket</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div>
-                                  <h4 className="text-white font-medium mb-2">Subject: {selectedTicket?.subject}</h4>
-                                  <p className="text-slate-300 text-sm">{selectedTicket?.description}</p>
-                                </div>
-                                <div>
-                                  <label className="text-slate-200 text-sm">Status</label>
-                                  <Select defaultValue={selectedTicket?.status}>
-                                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-slate-700 border-slate-600">
-                                      <SelectItem value="open" className="text-white">Open</SelectItem>
-                                      <SelectItem value="in_progress" className="text-white">In Progress</SelectItem>
-                                      <SelectItem value="closed" className="text-white">Closed</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div>
-                                  <label className="text-slate-200 text-sm">Admin Response</label>
-                                  <Textarea
-                                    placeholder="Type your response here..."
-                                    className="bg-slate-700 border-slate-600 text-white"
-                                    id="admin-response"
-                                  />
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button 
-                                    onClick={() => {
-                                      const status = (document.querySelector('input[name="status"]') as HTMLSelectElement)?.value || "in_progress";
-                                      const response = (document.getElementById('admin-response') as HTMLTextAreaElement)?.value;
-                                      handleTicketUpdate(status, response);
-                                    }}
-                                    className="bg-emerald-500 hover:bg-emerald-600"
-                                  >
-                                    Send Response
-                                  </Button>
-                                  <Button 
-                                    variant="outline"
-                                    onClick={() => handleTicketUpdate("closed")}
-                                    className="border-slate-600 text-slate-300"
-                                  >
-                                    Close Ticket
-                                  </Button>
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => deleteTicketMutation.mutate(ticket.id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
+                {tickets.length === 0 ? (
+                  <Card className="bg-slate-800 border-slate-700">
+                    <CardContent className="p-8 text-center">
+                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <h3 className="text-white font-medium mb-2">No support tickets</h3>
+                      <p className="text-slate-400">No tickets have been created yet.</p>
                     </CardContent>
                   </Card>
-                ))}
+                ) : (
+                  tickets.map((ticket: SupportTicket) => (
+                    <Card key={ticket.id} className="bg-slate-800 border-slate-700">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-white font-semibold">{ticket.subject}</h3>
+                              <Badge className={getPriorityColor(ticket.priority)}>
+                                {ticket.priority.toUpperCase()}
+                              </Badge>
+                              <Badge className={getStatusColor(ticket.status)}>
+                                {ticket.status.replace("_", " ").toUpperCase()}
+                              </Badge>
+                            </div>
+                            <p className="text-slate-300 text-sm mb-2">{ticket.description}</p>
+                            <div className="flex items-center gap-4 text-xs text-slate-400">
+                              <span>Category: {ticket.category}</span>
+                              <span>Created: {new Date(ticket.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            {ticket.adminResponse && (
+                              <div className="bg-slate-700 border border-slate-600 rounded-lg p-3 mt-3">
+                                <div className="text-emerald-400 text-sm font-medium mb-1">Admin Response:</div>
+                                <p className="text-slate-200 text-sm">{ticket.adminResponse}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                                  onClick={() => setSelectedTicket(ticket)}
+                                >
+                                  <Reply className="h-4 w-4 mr-1" />
+                                  Respond
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="bg-slate-800 border-slate-700">
+                                <DialogHeader>
+                                  <DialogTitle className="text-white">Respond to Ticket</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div>
+                                    <h4 className="text-white font-medium mb-2">Subject: {selectedTicket?.subject}</h4>
+                                    <p className="text-slate-300 text-sm">{selectedTicket?.description}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-slate-200 text-sm">Admin Response</label>
+                                    <Textarea
+                                      placeholder="Type your response here..."
+                                      className="bg-slate-700 border-slate-600 text-white"
+                                      value={adminResponse}
+                                      onChange={(e) => setAdminResponse(e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      onClick={() => handleTicketUpdate("in_progress", adminResponse)}
+                                      className="bg-emerald-500 hover:bg-emerald-600"
+                                      disabled={updateTicketMutation.isPending}
+                                    >
+                                      Send Response
+                                    </Button>
+                                    <Button 
+                                      variant="outline"
+                                      onClick={() => handleTicketUpdate("closed", adminResponse)}
+                                      className="border-slate-600 text-slate-300"
+                                      disabled={updateTicketMutation.isPending}
+                                    >
+                                      Close Ticket
+                                    </Button>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => deleteTicketMutation.mutate(ticket.id)}
+                              disabled={deleteTicketMutation.isPending}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -414,7 +420,7 @@ export default function AdminPage() {
         <div className="container mx-auto px-4 text-center">
           <p className="text-slate-400">
             © 2024 PromptOps. Powered by{" "}
-            <a href="https://monzed.com" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+            <a href="https://monzed.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">
               Monzed.com
             </a>
           </p>

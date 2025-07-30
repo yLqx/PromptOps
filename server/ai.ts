@@ -20,10 +20,34 @@ export interface AIResponse {
   error?: string;
 }
 
-export async function testPromptWithAI(promptContent: string): Promise<AIResponse> {
+export async function testPromptWithAI(promptContent: string, preferredModel?: string): Promise<AIResponse> {
   const startTime = Date.now();
 
-  // Try Gemini first (preferred as per requirements)
+  // Use preferred model if specified
+  if (preferredModel === "gpt-4o" && openai) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [{ role: "user", content: promptContent }],
+        max_tokens: 1000,
+      });
+
+      const responseTime = Date.now() - startTime;
+      const text = response.choices[0]?.message?.content || "No response generated";
+
+      return {
+        response: text,
+        model: "gpt-4o",
+        responseTime,
+        success: true,
+      };
+    } catch (openaiError: any) {
+      console.log("OpenAI failed, trying Gemini fallback:", openaiError);
+      // Fall through to try Gemini
+    }
+  }
+
+  // Try Gemini (default or fallback)
   if (gemini) {
     try {
       const response = await gemini.models.generateContent({
@@ -44,7 +68,7 @@ export async function testPromptWithAI(promptContent: string): Promise<AIRespons
       console.log("Gemini failed, trying OpenAI fallback:", geminiError);
 
       // Fallback to OpenAI GPT-4o
-      if (openai) {
+      if (openai && preferredModel !== "gpt-4o") { // Only try if we haven't already tried it above
         try {
           const response = await openai.chat.completions.create({
             model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user

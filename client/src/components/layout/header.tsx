@@ -25,7 +25,7 @@ export default function Header() {
           </Link>
           
           <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/">
+            <Link href="/dashboard">
               <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">Dashboard</span>
             </Link>
             <Link href="/prompts">
@@ -34,11 +34,7 @@ export default function Header() {
             <Link href="/billing">
               <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">Billing</span>
             </Link>
-            {user?.email === "admin@promptops.com" && (
-              <Link href="/admin">
-                <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">Admin</span>
-              </Link>
-            )}
+
           </nav>
 
           <div className="flex items-center space-x-4">

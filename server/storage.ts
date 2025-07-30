@@ -16,6 +16,7 @@ export interface IStorage {
   updateUserUsage(id: string, promptsUsed: number): Promise<User>;
   updateUserPlan(id: string, plan: "free" | "pro" | "team"): Promise<User>;
   updateUserStripeInfo(id: string, data: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User>;
+  updateUserPassword(id: string, hashedPassword: string): Promise<User>;
   
   // Prompt methods
   getPrompts(userId: string): Promise<Prompt[]>;
@@ -112,6 +113,15 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUserPassword(id: string, hashedPassword: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ password: hashedPassword })
       .where(eq(users.id, id))
       .returning();
     return user;

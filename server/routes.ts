@@ -92,13 +92,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test prompt with AI
   app.post("/api/test-prompt", requireAuth, checkPromptLimit, async (req, res) => {
     try {
-      const { promptContent, promptId } = req.body;
+      const { promptContent, promptId, model } = req.body;
       
       if (!promptContent) {
         return res.status(400).json({ message: "Prompt content is required" });
       }
 
-      const aiResponse = await testPromptWithAI(promptContent);
+      const aiResponse = await testPromptWithAI(promptContent, model);
       
       // Record the run
       const runData = {
@@ -203,14 +203,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/support/tickets", requireAuth, async (req, res) => {
+  app.post("/api/support-tickets", requireAuth, async (req, res) => {
     try {
-      const { subject, description, priority, category } = req.body;
+      const { title, description, urgency } = req.body;
       const ticket = await storage.createSupportTicket(req.user!.id, {
-        subject,
+        subject: title,
         description, 
-        priority,
-        category
+        priority: urgency,
+        category: "general"
       });
       res.json(ticket);
     } catch (error: any) {
@@ -294,6 +294,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Change Password endpoint
+  app.post("/api/change-password", requireAuth, async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+
+      // Hash the new password using the same method as auth.ts
+      const { scrypt, randomBytes } = await import("crypto");
+      const { promisify } = await import("util");
+      const scryptAsync = promisify(scrypt);
+      
+      const salt = randomBytes(16).toString("hex");
+      const buf = (await scryptAsync(newPassword, salt, 64)) as Buffer;
+      const hashedPassword = `${buf.toString("hex")}.${salt}`;
+
+      await storage.updateUserPassword(req.user!.id, hashedPassword);
+      
+      res.json({ message: "Password changed successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

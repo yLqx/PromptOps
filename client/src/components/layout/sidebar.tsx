@@ -16,7 +16,7 @@ export default function Sidebar() {
   const navigation = [
     {
       name: "Dashboard",
-      href: "/",
+      href: "/dashboard",
       icon: LayoutDashboard,
     },
     {
@@ -32,7 +32,7 @@ export default function Sidebar() {
   ];
 
   // Add admin link if user is admin
-  if (user?.email === "admin@promptops.com") {
+  if (user?.email === "admin@promptops.com" || user?.email === "mourad@admin.com") {
     navigation.push({
       name: "Admin",
       href: "/admin",

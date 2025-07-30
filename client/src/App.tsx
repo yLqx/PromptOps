@@ -28,6 +28,7 @@ function Router() {
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/support" component={SupportPage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/home" component={HomePage} />
       <ProtectedRoute path="/dashboard" component={DashboardPage} />
       <ProtectedRoute path="/prompts" component={PromptsPage} />
       <ProtectedRoute path="/billing" component={BillingPage} />

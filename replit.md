@@ -42,8 +42,10 @@ Preferred communication style: Simple, everyday language.
 
 ### AI Integration Service
 - **Primary**: Google Gemini (gemini-2.5-flash) via @google/genai
+- **Secondary**: DeepSeek V3 Pro via OpenAI-compatible API
 - **Fallback**: OpenAI GPT-4o via official OpenAI SDK
-- Intelligent fallback system: tries Gemini first, falls back to OpenAI on failure
+- Enhanced prompt formatting for improved response quality
+- Intelligent fallback system: tries preferred model first, then others on failure
 - Response tracking with timing and success metrics
 
 ### Database Schema
@@ -90,7 +92,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Core Dependencies
 - **@google/genai**: Google Gemini AI integration
-- **openai**: OpenAI GPT integration (fallback)
+- **openai**: OpenAI GPT integration and DeepSeek API compatibility
 - **@neondatabase/serverless**: Serverless PostgreSQL connection
 - **drizzle-orm**: Type-safe database ORM
 - **passport**: Authentication middleware
@@ -129,6 +131,7 @@ Preferred communication style: Simple, everyday language.
 - `DATABASE_URL`: PostgreSQL connection string
 - `SESSION_SECRET`: Session encryption key
 - `GEMINI_API_KEY` or `GOOGLE_AI_API_KEY`: Google AI API access
+- `DEEPSEEK_API_KEY`: DeepSeek V3 Pro API access
 - `OPENAI_API_KEY`: OpenAI API access (fallback)
 - `STRIPE_SECRET_KEY`: Stripe payment processing
 

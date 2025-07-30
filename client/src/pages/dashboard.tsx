@@ -189,7 +189,10 @@ export default function DashboardPage() {
     savePromptMutation.mutate({
       title: promptTitle,
       content: promptText,
-      description: promptDescription || `Generated from ${selectedModel.includes('gemini') ? 'Gemini' : 'GPT-4o'} response`
+      description: promptDescription || `Generated from ${
+        selectedModel.includes('gemini') ? 'Gemini 2.5 Flash' : 
+        selectedModel.includes('deepseek') ? 'DeepSeek V3 Pro' : 'GPT-4o'
+      } response`
     });
   };
 
@@ -379,8 +382,11 @@ export default function DashboardPage() {
               <CardHeader>
                 <CardTitle className="text-foreground flex items-center">
                   <Zap className="mr-2 h-5 w-5 text-emerald-400" />
-                  Quick Test
+                  AI Prompt Tester
                 </CardTitle>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Test your prompts with advanced AI models. Write clear, specific instructions for best results.
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-2">
@@ -390,13 +396,25 @@ export default function DashboardPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                      <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                      <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash - Fast & Efficient</SelectItem>
+                      <SelectItem value="gpt-4o">GPT-4o - Advanced Reasoning</SelectItem>
+                      <SelectItem value="deepseek-v3-pro">DeepSeek V3 Pro - Enhanced Understanding</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <div className="bg-muted/50 p-3 rounded-lg border-l-4 border-emerald-400">
+                  <h4 className="text-sm font-medium text-foreground mb-1">💡 Pro Tips for Better Results:</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Be specific and clear in your instructions</li>
+                    <li>• Include examples when possible</li>
+                    <li>• Specify the desired format or style</li>
+                    <li>• Test different models for comparison</li>
+                  </ul>
+                </div>
+                
                 <Textarea
-                  placeholder="Enter your prompt here..."
+                  placeholder="Example: 'Write a professional email to a client about project delays, mentioning the new timeline and apologizing for the inconvenience. Keep it under 150 words.'"
                   className="min-h-[120px]"
                   value={promptText}
                   onChange={(e) => setPromptText(e.target.value)}
@@ -414,7 +432,12 @@ export default function DashboardPage() {
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-foreground">AI Response</CardTitle>
+                <div>
+                  <CardTitle className="text-foreground">AI Response</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Enhanced responses with improved formatting and clarity
+                  </p>
+                </div>
                 {aiResponse && (
                   <Dialog>
                     <DialogTrigger asChild>
@@ -468,15 +491,24 @@ export default function DashboardPage() {
                 )}
               </CardHeader>
               <CardContent>
-                <div className="bg-background border border-border rounded-lg p-4 h-32 overflow-auto">
+                <div className="bg-background border border-border rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-auto">
                   {aiResponse ? (
-                    <p className="text-foreground whitespace-pre-wrap">{aiResponse}</p>
+                    <div className="prose prose-sm max-w-none text-foreground">
+                      <div className="whitespace-pre-wrap">{aiResponse}</div>
+                    </div>
                   ) : (
-                    <p className="text-muted-foreground italic">AI response will appear here after testing your prompt...</p>
+                    <div className="text-center py-8">
+                      <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground text-sm">AI response will appear here after testing your prompt</p>
+                      <p className="text-muted-foreground text-xs mt-2">Responses are enhanced for better clarity and formatting</p>
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center justify-between mt-4 text-sm">
-                  <span className="text-muted-foreground">Model: <span className="text-emerald-400">{selectedModel.includes('gemini') ? 'Gemini 2.5 Flash' : 'GPT-4o'}</span></span>
+                  <span className="text-muted-foreground">Model: <span className="text-emerald-400">
+                    {selectedModel.includes('gemini') ? 'Gemini 2.5 Flash' : 
+                     selectedModel.includes('deepseek') ? 'DeepSeek V3 Pro' : 'GPT-4o'}
+                  </span></span>
                   <span className="text-muted-foreground">Response time: <span className="text-foreground">{responseTime}</span></span>
                 </div>
               </CardContent>

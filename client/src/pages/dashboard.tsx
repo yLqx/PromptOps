@@ -24,7 +24,8 @@ import {
   Plus,
   Settings,
   Ticket,
-  Key
+  Key,
+  Save
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -43,6 +44,8 @@ export default function DashboardPage() {
   const [ticketTitle, setTicketTitle] = useState("");
   const [ticketDescription, setTicketDescription] = useState("");
   const [ticketUrgency, setTicketUrgency] = useState("medium");
+  const [promptTitle, setPromptTitle] = useState("");
+  const [promptDescription, setPromptDescription] = useState("");
 
   const { data: stats } = useQuery({
     queryKey: ["/api/dashboard/stats"],
@@ -120,6 +123,27 @@ export default function DashboardPage() {
     },
   });
 
+  // Save Prompt Mutation
+  const savePromptMutation = useMutation({
+    mutationFn: async (data: { title: string; content: string; description: string }) => {
+      const res = await apiRequest("POST", "/api/prompts", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      setPromptTitle("");
+      setPromptDescription("");
+      queryClient.invalidateQueries({ queryKey: ["/api/prompts"] });
+      toast({ title: "Prompt saved successfully!" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to save prompt", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
   // Handlers
   const handleTestPrompt = () => {
     if (!promptText.trim()) {
@@ -150,6 +174,22 @@ export default function DashboardPage() {
       title: ticketTitle, 
       description: ticketDescription, 
       urgency: ticketUrgency 
+    });
+  };
+
+  const handleSavePrompt = () => {
+    if (!promptText.trim()) {
+      toast({ title: "Please test a prompt first", variant: "destructive" });
+      return;
+    }
+    if (!promptTitle.trim()) {
+      toast({ title: "Please enter a title for the prompt", variant: "destructive" });
+      return;
+    }
+    savePromptMutation.mutate({
+      title: promptTitle,
+      content: promptText,
+      description: promptDescription || `Generated from ${selectedModel.includes('gemini') ? 'Gemini' : 'GPT-4o'} response`
     });
   };
 
@@ -373,8 +413,59 @@ export default function DashboardPage() {
             </Card>
             
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-foreground">AI Response</CardTitle>
+                {aiResponse && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <Save className="h-4 w-4 mr-2" />
+                        Save
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Save Prompt</DialogTitle>
+                        <DialogDescription>
+                          Save this tested prompt to your collection.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="promptTitle">Title</Label>
+                          <Input
+                            id="promptTitle"
+                            value={promptTitle}
+                            onChange={(e) => setPromptTitle(e.target.value)}
+                            placeholder="Enter a title for this prompt"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="promptDescription">Description (Optional)</Label>
+                          <Textarea
+                            id="promptDescription"
+                            value={promptDescription}
+                            onChange={(e) => setPromptDescription(e.target.value)}
+                            placeholder="Describe what this prompt does"
+                            className="min-h-[80px]"
+                          />
+                        </div>
+                        <div className="bg-muted p-3 rounded-lg">
+                          <Label className="text-sm font-medium">Prompt Content:</Label>
+                          <p className="text-sm text-muted-foreground mt-1">{promptText}</p>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button 
+                          onClick={handleSavePrompt}
+                          disabled={savePromptMutation.isPending}
+                        >
+                          {savePromptMutation.isPending ? "Saving..." : "Save Prompt"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="bg-background border border-border rounded-lg p-4 h-32 overflow-auto">

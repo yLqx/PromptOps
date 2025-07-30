@@ -1,4 +1,4 @@
-import { users, prompts, promptRuns, type User, type InsertUser, type Prompt, type InsertPrompt, type PromptRun, type InsertPromptRun } from "@shared/schema";
+import { users, prompts, promptRuns, supportTickets, type User, type InsertUser, type Prompt, type InsertPrompt, type PromptRun, type InsertPromptRun, type SupportTicket, type InsertSupportTicket } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count } from "drizzle-orm";
 import session from "express-session";
@@ -39,6 +39,12 @@ export interface IStorage {
     apiCalls?: number;
   }>;
   
+  // Support ticket methods
+  getSupportTickets(userId?: string): Promise<SupportTicket[]>;
+  createSupportTicket(userId: string, ticket: InsertSupportTicket): Promise<SupportTicket>;
+  updateSupportTicket(id: string, updates: { status?: string; adminResponse?: string }): Promise<SupportTicket>;
+  deleteSupportTicket(id: string): Promise<void>;
+
   // Admin methods
   getAllUsers(): Promise<User[]>;
   getSystemStats(): Promise<{
@@ -234,6 +240,43 @@ export class DatabaseStorage implements IStorage {
       monthlyRevenue: 0, // TODO: Calculate from Stripe data
       apiCalls: 0, // TODO: Track API calls
     };
+  }
+
+  // Support ticket methods
+  async getSupportTickets(userId?: string): Promise<SupportTicket[]> {
+    if (userId) {
+      return await db
+        .select()
+        .from(supportTickets)
+        .where(eq(supportTickets.userId, userId))
+        .orderBy(desc(supportTickets.createdAt));
+    } else {
+      return await db
+        .select()
+        .from(supportTickets)
+        .orderBy(desc(supportTickets.createdAt));
+    }
+  }
+
+  async createSupportTicket(userId: string, ticket: InsertSupportTicket): Promise<SupportTicket> {
+    const [created] = await db
+      .insert(supportTickets)
+      .values({ ...ticket, userId })
+      .returning();
+    return created;
+  }
+
+  async updateSupportTicket(id: string, updates: { status?: string; adminResponse?: string }): Promise<SupportTicket> {
+    const [updated] = await db
+      .update(supportTickets)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(supportTickets.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteSupportTicket(id: string): Promise<void> {
+    await db.delete(supportTickets).where(eq(supportTickets.id, id));
   }
 }
 

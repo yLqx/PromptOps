@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { Redirect } from "wouter";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import Footer from "@/components/layout/footer";
@@ -10,6 +11,11 @@ import PricingCards from "@/components/billing/pricing-cards";
 
 export default function HomePage() {
   const { user } = useAuth();
+
+  // Redirect logged-in users to dashboard
+  if (user) {
+    return <Redirect to="/dashboard" />;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">

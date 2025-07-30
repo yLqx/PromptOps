@@ -15,7 +15,7 @@ export default function AuthPage() {
 
   // Redirect if already logged in
   if (user) {
-    return <Redirect to="/" />;
+    return <Redirect to="/dashboard" />;
   }
 
   const handleLogin = (e: React.FormEvent) => {
@@ -162,6 +162,18 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="absolute bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t py-3">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            © 2024 PromptOps. Powered by{" "}
+            <a href="https://monzed.com" target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-400 transition-colors">
+              Monzed.com
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

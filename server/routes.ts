@@ -193,6 +193,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
+  // Support ticket routes
+  app.get("/api/support/tickets", requireAuth, async (req, res) => {
+    try {
+      const tickets = await storage.getSupportTickets(req.user!.id);
+      res.json(tickets);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/support/tickets", requireAuth, async (req, res) => {
+    try {
+      const { subject, description, priority, category } = req.body;
+      const ticket = await storage.createSupportTicket(req.user!.id, {
+        subject,
+        description, 
+        priority,
+        category
+      });
+      res.json(ticket);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Admin routes
   app.get("/api/admin/users", requireAuth, async (req, res) => {
     // Simple admin check (in production, implement proper role-based access)
@@ -203,6 +228,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const users = await storage.getAllUsers();
       res.json(users);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/tickets", requireAuth, async (req, res) => {
+    if (req.user!.email !== "admin@promptops.com") {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const tickets = await storage.getSupportTickets(); // All tickets for admin
+      res.json(tickets);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/admin/tickets/:id", requireAuth, async (req, res) => {
+    if (req.user!.email !== "admin@promptops.com") {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const { id } = req.params;
+      const { status, adminResponse } = req.body;
+      const ticket = await storage.updateSupportTicket(id, { status, adminResponse });
+      res.json(ticket);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/admin/tickets/:id", requireAuth, async (req, res) => {
+    if (req.user!.email !== "admin@promptops.com") {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const { id } = req.params;
+      await storage.deleteSupportTicket(id);
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

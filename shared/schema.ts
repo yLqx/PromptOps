@@ -46,6 +46,7 @@ export const promptRuns = pgTable("prompt_runs", {
 export const usersRelations = relations(users, ({ many }) => ({
   prompts: many(prompts),
   promptRuns: many(promptRuns),
+  supportTickets: many(supportTickets),
 }));
 
 export const promptsRelations = relations(prompts, ({ one, many }) => ({
@@ -64,6 +65,26 @@ export const promptRunsRelations = relations(promptRuns, ({ one }) => ({
   prompt: one(prompts, {
     fields: [promptRuns.promptId],
     references: [prompts.id],
+  }),
+}));
+
+export const supportTickets = pgTable("support_tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  priority: text("priority").notNull(), // "urgent", "medium", "low"
+  category: text("category").notNull(), // "technical", "billing", "feature", "bug", "other"
+  status: text("status").notNull().default("open"), // "open", "in_progress", "closed"
+  adminResponse: text("admin_response"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const supportTicketsRelations = relations(supportTickets, ({ one }) => ({
+  user: one(users, {
+    fields: [supportTickets.userId],
+    references: [users.id],
   }),
 }));
 
@@ -89,9 +110,18 @@ export const insertPromptRunSchema = createInsertSchema(promptRuns).pick({
   error: true,
 });
 
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).pick({
+  subject: true,
+  description: true,
+  priority: true,
+  category: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertPrompt = z.infer<typeof insertPromptSchema>;
 export type Prompt = typeof prompts.$inferSelect;
 export type InsertPromptRun = z.infer<typeof insertPromptRunSchema>;
 export type PromptRun = typeof promptRuns.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type SupportTicket = typeof supportTickets.$inferSelect;

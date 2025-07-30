@@ -281,7 +281,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const stats = await storage.getSystemStats();
+      const users = await storage.getAllUsers();
+      const tickets = await storage.getSupportTickets();
+      
+      const stats = {
+        totalUsers: users.length,
+        activeSubscriptions: users.filter(u => u.stripeSubscriptionId).length,
+        monthlyRevenue: users.filter(u => u.plan === "pro").length * 19 + users.filter(u => u.plan === "team").length * 49,
+        apiCalls: 0, // Could be tracked if needed
+        openTickets: tickets.filter(t => t.status === "open").length,
+        totalTickets: tickets.length
+      };
+      
       res.json(stats);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

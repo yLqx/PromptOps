@@ -1,0 +1,646 @@
+import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import Header from "@/components/layout/header";
+import Sidebar from "@/components/layout/sidebar";
+import Footer from "@/components/layout/footer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Activity, 
+  Zap, 
+  TrendingUp, 
+  Clock,
+  Sparkles,
+  MessageSquare,
+  Plus,
+  Settings,
+  Ticket,
+  Key,
+  Save
+} from "lucide-react";
+
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
+  // State for functionality
+  const [promptText, setPromptText] = useState("");
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+  const [aiResponse, setAiResponse] = useState("");
+  const [responseTime, setResponseTime] = useState("--");
+  const [promptScore, setPromptScore] = useState<number | null>(null);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [ticketTitle, setTicketTitle] = useState("");
+  const [ticketDescription, setTicketDescription] = useState("");
+  const [ticketUrgency, setTicketUrgency] = useState("medium");
+  const [promptTitle, setPromptTitle] = useState("");
+  const [promptDescription, setPromptDescription] = useState("");
+
+  const { data: stats } = useQuery({
+    queryKey: ["/api/dashboard/stats"],
+  });
+
+  const { data: prompts = [] } = useQuery<any[]>({
+    queryKey: ["/api/prompts"],
+  });
+
+  const { data: runs = [] } = useQuery<any[]>({
+    queryKey: ["/api/prompt-runs"],
+  });
+
+  // AI Test Mutation
+  const testPromptMutation = useMutation({
+    mutationFn: async (data: { promptContent: string; model?: string }) => {
+      const res = await apiRequest("POST", "/api/test-prompt", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setAiResponse(data.response);
+      setResponseTime(`${data.responseTime}ms`);
+      setPromptScore(data.score || null);
+      queryClient.invalidateQueries({ queryKey: ["/api/prompt-runs"] });
+      toast({ title: "Prompt tested successfully!" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to test prompt", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Password Change Mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const res = await apiRequest("POST", "/api/change-password", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      setIsPasswordDialogOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({ title: "Password changed successfully!" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to change password", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Create Ticket Mutation
+  const createTicketMutation = useMutation({
+    mutationFn: async (data: { title: string; description: string; urgency: string }) => {
+      const res = await apiRequest("POST", "/api/support-tickets", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      setIsTicketDialogOpen(false);
+      setTicketTitle("");
+      setTicketDescription("");
+      setTicketUrgency("medium");
+      toast({ title: "Support ticket created successfully!" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to create ticket", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Save Prompt Mutation
+  const savePromptMutation = useMutation({
+    mutationFn: async (data: { title: string; content: string; description: string }) => {
+      const res = await apiRequest("POST", "/api/prompts", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      setPromptTitle("");
+      setPromptDescription("");
+      queryClient.invalidateQueries({ queryKey: ["/api/prompts"] });
+      toast({ title: "Prompt saved successfully!" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to save prompt", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Handlers
+  const handleTestPrompt = () => {
+    if (!promptText.trim()) {
+      toast({ title: "Please enter a prompt to test", variant: "destructive" });
+      return;
+    }
+    testPromptMutation.mutate({ promptContent: promptText, model: selectedModel });
+  };
+
+  const handlePasswordChange = () => {
+    if (!currentPassword.trim()) {
+      toast({ title: "Please enter your current password", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "New passwords don't match", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "New password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    changePasswordMutation.mutate({ currentPassword, newPassword });
+  };
+
+  const handleCreateTicket = () => {
+    if (!ticketTitle.trim() || !ticketDescription.trim()) {
+      toast({ title: "Please fill in all ticket fields", variant: "destructive" });
+      return;
+    }
+    createTicketMutation.mutate({ 
+      title: ticketTitle, 
+      description: ticketDescription, 
+      urgency: ticketUrgency 
+    });
+  };
+
+  const handleSavePrompt = () => {
+    if (!promptText.trim()) {
+      toast({ title: "Please test a prompt first", variant: "destructive" });
+      return;
+    }
+    if (!promptTitle.trim()) {
+      toast({ title: "Please enter a title for the prompt", variant: "destructive" });
+      return;
+    }
+    savePromptMutation.mutate({
+      title: promptTitle,
+      content: promptText,
+      description: promptDescription || `Generated from ${
+        selectedModel.includes('gemini') ? 'Gemini 2.5 Flash' : 
+        selectedModel.includes('deepseek') ? 'DeepSeek V3 Pro' : 'GPT-4o'
+      } response`
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      
+      <div className="flex h-screen pt-16">
+        <Sidebar />
+        
+        <main className="flex-1 overflow-auto p-3 md:p-6 mobile-optimized lg:ml-0">
+          <div className="mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up">
+            <div className="animate-slide-in-left">
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2 text-drop-shadow">
+                Dashboard
+              </h2>
+              <p className="text-muted-foreground text-sm md:text-base">Manage your AI prompts and monitor usage</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 animate-slide-in-right">
+              <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="btn-shadow">
+                    <Key className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Change Password</span>
+                    <span className="sm:hidden">Password</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="glass-effect">
+                  <DialogHeader>
+                    <DialogTitle>Change Password</DialogTitle>
+                    <DialogDescription>
+                      For security, please enter your current password and new password twice.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="currentPassword">Current Password</Label>
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="glass-effect"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="glass-effect"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="glass-effect"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button 
+                      onClick={handlePasswordChange}
+                      disabled={changePasswordMutation.isPending}
+                      className="btn-shadow bg-emerald-600 hover:bg-emerald-700"
+                    >
+                      {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isTicketDialogOpen} onOpenChange={setIsTicketDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="btn-shadow">
+                    <Ticket className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Create Ticket</span>
+                    <span className="sm:hidden">Support</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="glass-effect">
+                  <DialogHeader>
+                    <DialogTitle>Create Support Ticket</DialogTitle>
+                    <DialogDescription>
+                      Describe your issue and we'll help you resolve it.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="ticketTitle">Title</Label>
+                      <Input
+                        id="ticketTitle"
+                        value={ticketTitle}
+                        onChange={(e) => setTicketTitle(e.target.value)}
+                        placeholder="Brief description of the issue"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="ticketDescription">Description</Label>
+                      <Textarea
+                        id="ticketDescription"
+                        value={ticketDescription}
+                        onChange={(e) => setTicketDescription(e.target.value)}
+                        placeholder="Detailed description of the issue"
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="ticketUrgency">Urgency</Label>
+                      <Select value={ticketUrgency} onValueChange={setTicketUrgency}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button 
+                      onClick={handleCreateTicket}
+                      disabled={createTicketMutation.isPending}
+                      className="btn-shadow bg-emerald-600 hover:bg-emerald-700"
+                    >
+                      {createTicketMutation.isPending ? "Creating..." : "Create Ticket"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid mobile-grid gap-4 md:gap-6 mb-6 md:mb-8">
+            <Card className="card-hover glass-effect animate-scale-in" style={{animationDelay: '0.1s'}}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-foreground flex items-center text-sm md:text-base">
+                  <Sparkles className="mr-2 h-4 w-4 text-emerald-400 animate-float" />
+                  Total Prompts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl md:text-2xl font-bold text-foreground text-drop-shadow">{prompts.length}</div>
+                <p className="text-muted-foreground text-xs md:text-sm">
+                  {user?.plan === "free" ? `${prompts.length}/5` : 
+                   user?.plan === "pro" ? `${prompts.length}/100` : 
+                   "Unlimited"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="card-hover glass-effect animate-scale-in" style={{animationDelay: '0.2s'}}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-foreground flex items-center text-sm md:text-base">
+                  <Activity className="mr-2 h-4 w-4 text-purple-400 animate-float" style={{animationDelay: '0.5s'}} />
+                  Runs Today
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl md:text-2xl font-bold text-foreground text-drop-shadow">{runs.length}</div>
+                <p className="text-muted-foreground text-xs md:text-sm">AI model executions</p>
+              </CardContent>
+            </Card>
+
+            <Card className="card-hover glass-effect animate-scale-in" style={{animationDelay: '0.3s'}}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-foreground flex items-center text-sm md:text-base">
+                  <TrendingUp className="mr-2 h-4 w-4 text-blue-400 animate-float" style={{animationDelay: '1s'}} />
+                  Success Rate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl md:text-2xl font-bold text-foreground text-drop-shadow">98%</div>
+                <p className="text-muted-foreground text-xs md:text-sm">Successful executions</p>
+              </CardContent>
+            </Card>
+
+            <Card className="card-hover glass-effect animate-scale-in" style={{animationDelay: '0.4s'}}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-foreground flex items-center text-sm md:text-base">
+                  <Clock className="mr-2 h-4 w-4 text-emerald-400 animate-float" style={{animationDelay: '1.5s'}} />
+                  Avg Response
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl md:text-2xl font-bold text-foreground text-drop-shadow">1.2s</div>
+                <p className="text-muted-foreground text-xs md:text-sm">Average response time</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Test */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+            <Card className="card-hover glass-effect animate-fade-in-up" style={{animationDelay: '0.5s'}}>
+              <CardHeader>
+                <CardTitle className="text-foreground flex items-center gradient-text text-drop-shadow text-base md:text-lg">
+                  <Zap className="mr-2 h-5 w-5 text-emerald-400" />
+                  AI Prompt Tester
+                </CardTitle>
+                <p className="text-xs md:text-sm text-muted-foreground mt-2">
+                  Test your prompts with advanced AI models. Write clear, specific instructions for best results.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="model">AI Model</Label>
+                  <Select value={selectedModel} onValueChange={setSelectedModel}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash - Fast & Efficient</SelectItem>
+                      <SelectItem value="gpt-4o">GPT-4o - Advanced Reasoning</SelectItem>
+                      <SelectItem value="deepseek-v3-pro">DeepSeek V3 Pro - Enhanced Understanding</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="bg-muted/50 p-3 rounded-lg border-l-4 border-emerald-400">
+                  <h4 className="text-sm font-medium text-foreground mb-1">💡 Pro Tips for Better Results:</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Be specific and clear in your instructions</li>
+                    <li>• Include examples when possible</li>
+                    <li>• Specify the desired format or style</li>
+                    <li>• Test different models for comparison</li>
+                  </ul>
+                </div>
+                
+                <Textarea
+                  placeholder="Example: 'Write a professional email to a client about project delays, mentioning the new timeline and apologizing for the inconvenience. Keep it under 150 words.'"
+                  className="min-h-[120px]"
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                />
+                <Button 
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 btn-shadow text-sm md:text-base"
+                  onClick={handleTestPrompt}
+                  disabled={testPromptMutation.isPending}
+                >
+                  <Zap className="mr-2 h-4 w-4" />
+                  {testPromptMutation.isPending ? "Testing..." : "Test Prompt"}
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="card-hover glass-effect animate-fade-in-up" style={{animationDelay: '0.6s'}}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-foreground gradient-text text-base md:text-lg">AI Response</CardTitle>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                    Enhanced responses with improved formatting and clarity
+                  </p>
+                </div>
+                {aiResponse && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <Save className="h-4 w-4 mr-2" />
+                        Save
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Save Prompt</DialogTitle>
+                        <DialogDescription>
+                          Save this tested prompt to your collection.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="promptTitle">Title</Label>
+                          <Input
+                            id="promptTitle"
+                            value={promptTitle}
+                            onChange={(e) => setPromptTitle(e.target.value)}
+                            placeholder="Enter a title for this prompt"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="promptDescription">Description (Optional)</Label>
+                          <Textarea
+                            id="promptDescription"
+                            value={promptDescription}
+                            onChange={(e) => setPromptDescription(e.target.value)}
+                            placeholder="Describe what this prompt does"
+                            className="min-h-[80px]"
+                          />
+                        </div>
+                        <div className="bg-muted p-3 rounded-lg">
+                          <Label className="text-sm font-medium">Prompt Content:</Label>
+                          <p className="text-sm text-muted-foreground mt-1">{promptText}</p>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button 
+                          onClick={handleSavePrompt}
+                          disabled={savePromptMutation.isPending}
+                        >
+                          {savePromptMutation.isPending ? "Saving..." : "Save Prompt"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="bg-background border border-border rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-auto">
+                  {aiResponse ? (
+                    <div className="prose prose-sm max-w-none text-foreground">
+                      <div className="whitespace-pre-wrap">{aiResponse}</div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground text-sm">AI response will appear here after testing your prompt</p>
+                      <p className="text-muted-foreground text-xs mt-2">Responses are enhanced for better clarity and formatting</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between mt-4 text-sm">
+                  <span className="text-muted-foreground">Model: <span className="text-emerald-400">
+                    {selectedModel.includes('gemini') ? 'Gemini 2.5 Flash' : 
+                     selectedModel.includes('deepseek') ? 'DeepSeek V3 Pro' : 'GPT-4o'}
+                  </span></span>
+                  <span className="text-muted-foreground">Response time: <span className="text-foreground">{responseTime}</span></span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-foreground">Recent Prompts</CardTitle>
+                <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600">
+                  <Plus className="h-4 w-4 mr-1" />
+                  New
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {prompts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-foreground font-medium mb-2">No prompts yet</h3>
+                    <p className="text-muted-foreground">Create your first prompt to get started.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {prompts.slice(0, 5).map((prompt: any) => (
+                      <div key={prompt.id} className="p-3 bg-muted rounded-lg">
+                        <h4 className="text-foreground font-medium">{prompt.title}</h4>
+                        <p className="text-muted-foreground text-sm mt-1">{prompt.description}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <Badge className={`text-xs ${
+                            prompt.status === "active" ? "bg-emerald-600" : "bg-muted"
+                          }`}>
+                            {prompt.status}
+                          </Badge>
+                          <span className="text-muted-foreground text-xs">
+                            {new Date(prompt.updatedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-foreground">Activity Feed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full mt-2"></div>
+                    <div>
+                      <p className="text-foreground text-sm">Welcome to PromptOps!</p>
+                      <p className="text-muted-foreground text-xs">Account created</p>
+                    </div>
+                  </div>
+                  {runs.slice(0, 3).map((run: any, index: number) => (
+                    <div key={run.id || index} className="flex items-start space-x-3">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+                      <div>
+                        <p className="text-foreground text-sm">Prompt executed successfully</p>
+                        <p className="text-muted-foreground text-xs">{new Date(run.createdAt).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Plan Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-foreground">Current Plan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Badge className={`text-sm mb-2 ${
+                    user?.plan === "free" ? "bg-muted" : 
+                    user?.plan === "pro" ? "bg-emerald-600" : 
+                    "bg-blue-600"
+                  }`}>
+                    {user?.plan?.toUpperCase() || "FREE"}
+                  </Badge>
+                  <p className="text-muted-foreground">
+                    {user?.plan === "free" ? "5 prompts included" :
+                     user?.plan === "pro" ? "100 prompts for $19/month" :
+                     "Unlimited prompts for $49/month"}
+                  </p>
+                </div>
+                {user?.plan === "free" && (
+                  <Button className="bg-emerald-500 hover:bg-emerald-600">
+                    Upgrade Plan
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+
+      <Footer />
+    </div>
+  );
+}

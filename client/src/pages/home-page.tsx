@@ -1,21 +1,31 @@
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import Footer from "@/components/layout/footer";
-import StatsCards from "@/components/dashboard/stats-cards";
-import QuickTest from "@/components/dashboard/quick-test";
-import RecentPrompts from "@/components/dashboard/recent-prompts";
-import ActivityFeed from "@/components/dashboard/activity-feed";
-import PricingCards from "@/components/billing/pricing-cards";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Activity, 
+  Zap, 
+  TrendingUp, 
+  Clock,
+  Sparkles,
+  Plus
+} from "lucide-react";
 
 export default function HomePage() {
   const { user } = useAuth();
 
-  // Redirect logged-in users to dashboard
-  if (user) {
-    return <Redirect to="/dashboard" />;
-  }
+  const { data: prompts = [] } = useQuery({
+    queryKey: ["/api/prompts"],
+  });
+
+  const { data: runs = [] } = useQuery({
+    queryKey: ["/api/prompt-runs"],
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -58,7 +68,7 @@ export default function HomePage() {
           </div>
 
           {/* Admin Section */}
-          {user?.email === "admin@promptops.com" && (
+          {(user?.email === "admin@promptops.com" || user?.email === "mourad@admin.com") && (
             <div className="mt-12">
               <h2 className="text-2xl font-bold text-foreground mb-6">Admin Dashboard</h2>
               

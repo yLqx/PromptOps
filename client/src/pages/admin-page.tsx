@@ -32,7 +32,7 @@ export default function AdminPage() {
     );
   }
 
-  if (user.email !== "admin@promptops.com") {
+  if (user.email !== "admin@promptops.com" && user.email !== "mourad@admin.com") {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <Card className="bg-slate-800 border-slate-700">

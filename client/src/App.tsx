@@ -5,6 +5,7 @@ import { ProtectedRoute } from "@/lib/protected-route";
 import { Toaster } from "@/components/ui/toaster";
 import { queryClient } from "@/lib/queryClient";
 import HomePage from "@/pages/home-page";
+import DashboardPage from "@/pages/dashboard";
 import LandingPage from "@/pages/landing-page";
 import AboutPage from "@/pages/about-page";
 import PricingPage from "@/pages/pricing-page";
@@ -27,7 +28,7 @@ function Router() {
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/support" component={SupportPage} />
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/dashboard" component={HomePage} />
+      <ProtectedRoute path="/dashboard" component={DashboardPage} />
       <ProtectedRoute path="/prompts" component={PromptsPage} />
       <ProtectedRoute path="/billing" component={BillingPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />

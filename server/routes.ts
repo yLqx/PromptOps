@@ -220,8 +220,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin routes
   app.get("/api/admin/users", requireAuth, async (req, res) => {
-    // Simple admin check (in production, implement proper role-based access)
-    if (req.user!.email !== "admin@promptops.com") {
+    // Simple admin check (allow both admin emails)
+    if (req.user!.email !== "admin@promptops.com" && req.user!.email !== "mourad@admin.com") {
       return res.sendStatus(403);
     }
 
@@ -234,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/admin/tickets", requireAuth, async (req, res) => {
-    if (req.user!.email !== "admin@promptops.com") {
+    if (req.user!.email !== "admin@promptops.com" && req.user!.email !== "mourad@admin.com") {
       return res.sendStatus(403);
     }
 
@@ -247,7 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.put("/api/admin/tickets/:id", requireAuth, async (req, res) => {
-    if (req.user!.email !== "admin@promptops.com") {
+    if (req.user!.email !== "admin@promptops.com" && req.user!.email !== "mourad@admin.com") {
       return res.sendStatus(403);
     }
 
@@ -262,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.delete("/api/admin/tickets/:id", requireAuth, async (req, res) => {
-    if (req.user!.email !== "admin@promptops.com") {
+    if (req.user!.email !== "admin@promptops.com" && req.user!.email !== "mourad@admin.com") {
       return res.sendStatus(403);
     }
 
@@ -276,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/admin/stats", requireAuth, async (req, res) => {
-    if (req.user!.email !== "admin@promptops.com") {
+    if (req.user!.email !== "admin@promptops.com" && req.user!.email !== "mourad@admin.com") {
       return res.sendStatus(403);
     }
 

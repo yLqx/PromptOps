@@ -55,7 +55,7 @@ export default function ActivityFeed() {
                     <span className="text-emerald-400">{run.model}</span>
                   </p>
                   <p className="text-muted-foreground text-xs">
-                    {formatTimeAgo(run.createdAt)}
+                    {formatTimeAgo(run.createdAt.toString())}
                   </p>
                 </div>
               </div>

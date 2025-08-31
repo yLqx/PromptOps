@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Edit, Play, Check, Crown } from "lucide-react";
 
 export default function StatsCards() {
-  const { data: stats } = useQuery({
+  const { data: stats = { totalPrompts: 0, runsToday: 0, successRate: 0 } } = useQuery({
     queryKey: ["/api/dashboard-stats"],
   });
 

@@ -1,35 +1,45 @@
 import { Link } from "wouter";
-import { Sparkles, ArrowLeft } from "lucide-react";
+import { Sparkles, ArrowLeft, Github, Linkedin, Twitter, Mail, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900">
-      {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-900/50 backdrop-blur-sm">
+      {/* Navigation Header */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/">
-              <div className="flex items-center space-x-2 cursor-pointer">
-                <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">PromptOps</span>
-              </div>
+              <Logo className="text-white" />
             </Link>
-            <Link href="/">
-              <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
+            
+            <div className="hidden md:flex items-center gap-8">
+              <Link href="/features" className="text-slate-300 hover:text-white transition-colors">Features</Link>
+              <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">Pricing</Link>
+              <Link href="/about" className="text-slate-300 hover:text-white transition-colors">About</Link>
+              <Link href="/contact" className="text-slate-300 hover:text-white transition-colors">Contact</Link>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Link href="/auth">
+                <Button variant="outline" className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/auth">
+                <Button className="bg-emerald-600 hover:bg-emerald-700">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </header>
+      </nav>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-12 pt-32">
         <div className="max-w-4xl mx-auto">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardContent className="p-8">
@@ -147,7 +157,7 @@ export default function PrivacyPage() {
                 <section>
                   <h2 className="text-2xl font-semibold text-white mb-4">12. Contact Us</h2>
                   <p className="leading-relaxed">
-                    If you have any questions about this Privacy Policy or our privacy practices, please contact us at privacy@promptops.com or through our support system.
+                    If you have any questions about this Privacy Policy or our privacy practices, please contact us at privacy@promptop.net.
                   </p>
                 </section>
               </div>
@@ -156,15 +166,85 @@ export default function PrivacyPage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 border-t border-slate-700 py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-slate-400">
-            © 2024 PromptOps. Powered by{" "}
-            <a href="https://monzed.com" className="text-emerald-400 hover:text-emerald-300 transition-colors">
-              Monzed.com
-            </a>
-          </p>
+      {/* Enhanced Footer */}
+      <footer className="bg-slate-900 border-t border-slate-700 py-16">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Brand */}
+            <div className="space-y-4">
+              <Logo className="text-white" size="sm" clickable={false} />
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Advanced AI prompt engineering platform for developers and businesses.
+              </p>
+              <div className="flex space-x-4">
+                <a href="https://github.com/PromptOp" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-emerald-400 transition-colors">
+                  <Github className="h-5 w-5" />
+                </a>
+                <a href="https://www.linkedin.com/company/promptopnet/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-emerald-400 transition-colors">
+                  <Linkedin className="h-5 w-5" />
+                </a>
+                <a href="https://www.x.com/promptopnet" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-emerald-400 transition-colors">
+                  <Twitter className="h-5 w-5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Product */}
+            <div>
+              <h3 className="text-white font-semibold mb-4">Product</h3>
+              <div className="space-y-2">
+                <Link href="/features" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Features</Link>
+                <Link href="/pricing" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Pricing</Link>
+                <Link href="/integrations" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Integrations</Link>
+                <Link href="/api" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">API</Link>
+              </div>
+            </div>
+
+            {/* Company */}
+            <div>
+              <h3 className="text-white font-semibold mb-4">Company</h3>
+              <div className="space-y-2">
+                <Link href="/about" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">About</Link>
+                <Link href="/blog" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Blog</Link>
+                <Link href="/careers" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Careers</Link>
+                <Link href="/contact" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Contact</Link>
+              </div>
+            </div>
+
+            {/* Legal & Contact */}
+            <div>
+              <h3 className="text-white font-semibold mb-4">Legal & Contact</h3>
+              <div className="space-y-2 mb-4">
+                <Link href="/terms" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Terms of Service</Link>
+                <Link href="/privacy" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Privacy Policy</Link>
+                <Link href="/security" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Security</Link>
+                <Link href="/status" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Status</Link>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-slate-500" />
+                  <span className="text-slate-400 text-sm">support@promptop.net</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-slate-500" />
+                  <span className="text-slate-400 text-sm">+33775851544</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-slate-500" />
+                  <span className="text-slate-400 text-sm">Paris, FR</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-700 mt-12 pt-8 text-center">
+            <p className="text-slate-400 text-sm">
+              © 2025 promptop. All rights reserved. Powered by{" "}
+              <a href="https://monzed.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+                Monzed.com
+              </a>
+            </p>
+          </div>
         </div>
       </footer>
     </div>

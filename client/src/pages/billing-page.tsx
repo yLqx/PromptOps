@@ -1,4 +1,5 @@
-import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+import { useUserUsage } from "@/hooks/use-user-usage";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import Footer from "@/components/layout/footer";
@@ -9,18 +10,28 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Calendar, AlertTriangle } from "lucide-react";
 
 export default function BillingPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
+  const { plan, promptsUsed, promptsLimit } = useUserUsage();
 
   const planLimits = {
-    free: 5,
-    pro: 100,
-    team: "Unlimited",
+    free: "15 prompts, 5 enhancements",
+    pro: "1000 prompts, 150 enhancements",
+    team: "7500 prompts, 2000 enhancements",
+    enterprise: "Unlimited prompts, unlimited enhancements",
   };
 
   const planNames = {
     free: "Free Plan",
     pro: "Pro Plan",
     team: "Team Plan",
+    enterprise: "Enterprise Plan",
+  };
+
+  const planPrices = {
+    free: "$0",
+    pro: "$15",
+    team: "$49",
+    enterprise: "Custom",
   };
 
   return (
@@ -32,7 +43,7 @@ export default function BillingPage() {
         
         <main className="flex-1 overflow-auto p-6">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-foreground mb-2">Billing & Plans</h2>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Billing & Plans</h1>
             <p className="text-muted-foreground">Manage your subscription and billing information</p>
           </div>
 
@@ -44,9 +55,12 @@ export default function BillingPage() {
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{planNames[user?.plan as keyof typeof planNames] || "Free Plan"}</div>
-                <Badge className="mt-2" variant={user?.plan === "free" ? "secondary" : "default"}>
-                  {user?.plan === "free" ? "Free" : "Paid"}
+                <div className="text-2xl font-bold font-['DM_Sans']">{planNames[plan as keyof typeof planNames] || "Free Plan"}</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {planPrices[plan as keyof typeof planPrices] || "$0"}/month
+                </p>
+                <Badge className="mt-2" variant={plan === "free" ? "secondary" : "default"}>
+                  {plan === "free" ? "Free" : "Paid"}
                 </Badge>
               </CardContent>
             </Card>
@@ -57,11 +71,13 @@ export default function BillingPage() {
                 <AlertTriangle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {user?.promptsUsed || 0} / {planLimits[user?.plan as keyof typeof planLimits] || 5}
+                <div className="text-2xl font-bold text-emerald-400">
+                  {promptsUsed} / {
+                    promptsLimit === Infinity ? '∞' : promptsLimit
+                  }
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Prompts used this month
+                  Prompt tests used this month
                 </p>
               </CardContent>
             </Card>
@@ -73,10 +89,10 @@ export default function BillingPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {user?.plan === "free" ? "N/A" : "Next Month"}
+                  {plan === "free" ? "N/A" : "Next Month"}
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  {user?.plan === "free" ? "No billing cycle" : "Automatic renewal"}
+                  {plan === "free" ? "No billing cycle" : "Automatic renewal"}
                 </p>
               </CardContent>
             </Card>
@@ -95,12 +111,12 @@ export default function BillingPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Plan</p>
-                    <p className="text-lg font-semibold">{planNames[user.plan as keyof typeof planNames]}</p>
+                    <p className="text-lg font-semibold">{planNames[user?.plan as keyof typeof planNames]}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Price</p>
                     <p className="text-lg font-semibold">
-                      {user.plan === "pro" ? "$19/month" : "$49/month"}
+                      {user?.plan === "pro" ? "$19/month" : "$49/month"}
                     </p>
                   </div>
                   <div>
@@ -122,7 +138,7 @@ export default function BillingPage() {
           )}
 
           {/* Usage Warning */}
-          {user?.plan === "free" && user?.promptsUsed >= 4 && (
+          {user?.plan === "free" && user?.prompts_used >= 12 && (
             <Card className="mb-8 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
               <CardHeader>
                 <CardTitle className="text-amber-800 dark:text-amber-200">Usage Warning</CardTitle>
@@ -132,7 +148,7 @@ export default function BillingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-amber-800 dark:text-amber-200 mb-4">
-                  You've used {user.promptsUsed} out of 5 free prompts. Consider upgrading to continue using PromptOps without interruption.
+                  You've used {user.prompts_used} out of 15 free prompt tests. Consider upgrading to continue using PromptOp without interruption.
                 </p>
                 <Button className="bg-amber-600 hover:bg-amber-700">
                   Upgrade Now

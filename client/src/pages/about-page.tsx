@@ -1,38 +1,78 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/ui/logo";
 import { Link } from "wouter";
-import { 
-  Sparkles, 
-  Users, 
-  Target, 
-  Zap, 
+import {
   Brain,
+  Rocket,
+  Shield,
+  Users,
+  Target,
+  Globe,
+  Zap,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  Star
 } from "lucide-react";
 
 export default function AboutPage() {
+  const team = [
+    {
+      name: "Alex Chen",
+      role: "CEO & Co-founder",
+      bio: "Former AI researcher at Google. Passionate about democratizing AI access.",
+      avatar: "AC"
+    },
+    {
+      name: "Sarah Johnson",
+      role: "CTO & Co-founder",
+      bio: "Ex-OpenAI engineer. Expert in large language models and AI infrastructure.",
+      avatar: "SJ"
+    },
+    {
+      name: "Marcus Rodriguez",
+      role: "Head of Product",
+      bio: "Product leader with 10+ years building developer tools at Microsoft.",
+      avatar: "MR"
+    },
+    {
+      name: "Emily Zhang",
+      role: "Head of Engineering",
+      bio: "Full-stack architect specializing in scalable AI platforms.",
+      avatar: "EZ"
+    }
+  ];
+
   const values = [
     {
-      icon: <Brain className="h-8 w-8 text-emerald-500" />,
-      title: "Innovation First",
-      description: "We push the boundaries of what's possible in AI prompt engineering"
+      icon: <Brain className="h-8 w-8 text-emerald-400" />,
+      title: "AI-First Innovation",
+      description: "We believe AI should be accessible, powerful, and easy to use for everyone."
     },
     {
-      icon: <Users className="h-8 w-8 text-emerald-500" />,
-      title: "Developer-Centric",
-      description: "Built by developers, for developers. We understand your workflow"
+      icon: <Users className="h-8 w-8 text-blue-400" />,
+      title: "Community Driven",
+      description: "Our platform grows stronger with every user, prompt, and piece of feedback."
     },
     {
-      icon: <Target className="h-8 w-8 text-emerald-500" />,
-      title: "Results-Driven",
-      description: "Every feature is designed to improve your prompt performance"
+      icon: <Shield className="h-8 w-8 text-purple-400" />,
+      title: "Trust & Security",
+      description: "Enterprise-grade security and privacy protection for all user data."
     },
     {
-      icon: <Zap className="h-8 w-8 text-emerald-500" />,
-      title: "Speed & Reliability",
-      description: "Fast, reliable infrastructure that scales with your needs"
+      icon: <Globe className="h-8 w-8 text-yellow-400" />,
+      title: "Global Impact",
+      description: "Empowering developers worldwide to build the next generation of AI applications."
     }
+  ];
+
+  const milestones = [
+    { year: "2024", event: "PromptOps founded", description: "Started with a vision to simplify AI prompt management" },
+    { year: "2024", event: "First 1,000 users", description: "Reached our first milestone with early adopters" },
+    { year: "2024", event: "Multi-model support", description: "Added support for 5+ AI models" },
+    { year: "2025", event: "20+ AI models", description: "Expanded to support 20+ leading AI models" },
+    { year: "2025", event: "Enterprise launch", description: "Launched enterprise features and team collaboration" }
   ];
 
   return (
@@ -42,12 +82,7 @@ export default function AboutPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/">
-              <div className="flex items-center space-x-2 cursor-pointer">
-                <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">PromptOps</span>
-              </div>
+              <Logo className="text-white" />
             </Link>
             <nav className="flex items-center space-x-8">
               <Link href="/">

@@ -21,15 +21,19 @@ export default function QuickTest() {
       const responseEl = document.getElementById("ai-response");
       const modelEl = document.querySelector("[data-model]");
       const timeEl = document.querySelector("[data-time]");
-      
+
+      const safeResponse = data?.response && data.response.trim().length > 0
+        ? data.response
+        : (data?.error ? `AI Error: ${data.error}` : "No response generated. Check your AI API keys in the server .env.");
+
       if (responseEl) {
-        responseEl.innerHTML = `<p class="text-foreground">${data.response}</p>`;
+        responseEl.innerHTML = `<p class="text-foreground">${safeResponse}</p>`;
       }
       if (modelEl) {
-        modelEl.textContent = data.model;
+        modelEl.textContent = data?.model || 'unknown';
       }
       if (timeEl) {
-        timeEl.textContent = `${data.responseTime}ms`;
+        timeEl.textContent = `${data?.responseTime ?? 0}ms`;
       }
 
       toast({ 

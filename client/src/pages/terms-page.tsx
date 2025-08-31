@@ -1,35 +1,57 @@
 import { Link } from "wouter";
-import { Sparkles, ArrowLeft } from "lucide-react";
+import { Github, Twitter, Linkedin, Mail, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900">
-      {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-900/50 backdrop-blur-sm">
+      {/* Navigation Header */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/">
-              <div className="flex items-center space-x-2 cursor-pointer">
-                <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">PromptOps</span>
-              </div>
+              <Logo className="text-white" />
             </Link>
-            <Link href="/">
-              <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
+
+            <div className="hidden md:flex items-center gap-8">
+              <Link href="/features" className="text-slate-300 hover:text-white transition-colors">Features</Link>
+              <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">Pricing</Link>
+              <Link href="/contact" className="text-slate-300 hover:text-white transition-colors">Contact</Link>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Link href="/auth">
+                <Button variant="outline" className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/auth">
+                <Button className="bg-emerald-600 hover:bg-emerald-700">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Content */}
-      <div className="container mx-auto px-4 py-12">
+      {/* Hero Section */}
+      <section className="pt-32 pb-20 px-4">
+        <div className="container mx-auto text-center">
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+            Terms of Service
+          </h1>
+          <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-8">
+            Last updated: January 1, 2025
+          </p>
+        </div>
+      </section>
+
+      {/* Terms Content */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
         <div className="max-w-4xl mx-auto">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardContent className="p-8">
@@ -40,14 +62,14 @@ export default function TermsPage() {
                 <section>
                   <h2 className="text-2xl font-semibold text-white mb-4">1. Acceptance of Terms</h2>
                   <p className="leading-relaxed">
-                    By accessing and using PromptOps ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+                    By accessing and using PromptOp ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
                   </p>
                 </section>
 
                 <section>
                   <h2 className="text-2xl font-semibold text-white mb-4">2. Description of Service</h2>
                   <p className="leading-relaxed mb-4">
-                    PromptOps is a web-based platform that provides AI prompt testing, optimization, and management tools. The service includes:
+                    PromptOp is a web-based platform that provides AI prompt testing, optimization, and management tools. The service includes:
                   </p>
                   <ul className="list-disc list-inside space-y-2 ml-4">
                     <li>AI prompt testing with multiple models</li>
@@ -107,7 +129,7 @@ export default function TermsPage() {
                 <section>
                   <h2 className="text-2xl font-semibold text-white mb-4">7. Intellectual Property</h2>
                   <p className="leading-relaxed">
-                    The Service and its original content, features, and functionality are owned by PromptOps and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
+                    The Service and its original content, features, and functionality are owned by PromptOp and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
                   </p>
                 </section>
 
@@ -121,7 +143,7 @@ export default function TermsPage() {
                 <section>
                   <h2 className="text-2xl font-semibold text-white mb-4">9. Limitation of Liability</h2>
                   <p className="leading-relaxed">
-                    In no event shall PromptOps, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.
+                    In no event shall PromptOp, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.
                   </p>
                 </section>
 
@@ -142,17 +164,120 @@ export default function TermsPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 border-t border-slate-700 py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-slate-400">
-            © 2024 PromptOps. Powered by{" "}
-            <a href="https://monzed.com" className="text-emerald-400 hover:text-emerald-300 transition-colors">
-              Monzed.com
-            </a>
-          </p>
+      <footer className="relative bg-slate-900 border-t border-slate-700/50 py-16 overflow-hidden">
+        {/* MONZED Background Animation */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute text-[20rem] font-bold text-slate-800/10 select-none animate-pulse">
+            <div className="absolute top-10 -left-20 transform -rotate-12 animate-bounce" style={{animationDelay: '0s', animationDuration: '8s'}}>
+              MONZED
+            </div>
+            <div className="absolute top-40 right-10 transform rotate-12 animate-bounce" style={{animationDelay: '2s', animationDuration: '10s'}}>
+              MONZED
+            </div>
+            <div className="absolute bottom-20 left-1/3 transform -rotate-6 animate-bounce" style={{animationDelay: '4s', animationDuration: '12s'}}>
+              MONZED
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+            {/* Company Info */}
+            <div className="space-y-4">
+              <Logo className="text-white" />
+              <p className="text-slate-400 text-sm leading-relaxed">
+                The ultimate AI prompt management platform. Streamline your AI workflows with 20+ models and intelligent optimization.
+              </p>
+              <div className="flex space-x-4">
+                <a href="https://github.com/promptops" className="text-slate-400 hover:text-emerald-400 transition-colors">
+                  <Github className="h-5 w-5" />
+                </a>
+                <a href="https://twitter.com/promptops" className="text-slate-400 hover:text-emerald-400 transition-colors">
+                  <Twitter className="h-5 w-5" />
+                </a>
+                <a href="https://linkedin.com/company/promptops" className="text-slate-400 hover:text-emerald-400 transition-colors">
+                  <Linkedin className="h-5 w-5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Product */}
+            <div className="space-y-4">
+              <h3 className="text-white font-semibold">Product</h3>
+              <div className="space-y-2">
+                <Link href="/features" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Features</Link>
+                <Link href="/pricing" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Pricing</Link>
+                <Link href="/integrations" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Integrations</Link>
+                <Link href="/api" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">API</Link>
+                <Link href="/roadmap" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Roadmap</Link>
+              </div>
+            </div>
+
+            {/* Company */}
+            <div className="space-y-4">
+              <h3 className="text-white font-semibold">Company</h3>
+              <div className="space-y-2">
+                <Link href="/about" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">About</Link>
+                <Link href="/careers" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Careers</Link>
+                <Link href="/jobs" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Jobs</Link>
+                <Link href="/blog" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Blog</Link>
+                <Link href="/contact" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Contact</Link>
+              </div>
+            </div>
+
+            {/* Legal & Support */}
+            <div className="space-y-4">
+              <h3 className="text-white font-semibold">Legal & Support</h3>
+              <div className="space-y-2">
+                <Link href="/terms" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Terms of Service</Link>
+                <Link href="/privacy" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Privacy Policy</Link>
+
+                <Link href="/status" className="block text-slate-400 hover:text-emerald-400 transition-colors text-sm">Status</Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Info */}
+          <div className="border-t border-slate-700/50 pt-8 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start space-x-3">
+                <Mail className="h-5 w-5 text-emerald-400" />
+                <span className="text-slate-400">hello@promptops.com</span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start space-x-3">
+                <Phone className="h-5 w-5 text-emerald-400" />
+                <span className="text-slate-400">+1 (555) 123-4567</span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start space-x-3">
+                <MapPin className="h-5 w-5 text-emerald-400" />
+                <span className="text-slate-400">San Francisco, CA</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="border-t border-slate-700/50 pt-8">
+            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <p className="text-slate-400 text-sm">
+                © 2025 PromptOp. All rights reserved.
+              </p>
+              <div className="flex items-center space-x-6">
+                <span className="text-slate-400 text-sm">Powered by</span>
+                <a
+                  href="https://monzed.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors font-semibold"
+                >
+                  MONZED
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

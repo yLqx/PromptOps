@@ -2,10 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function PricingCards() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
+  const { toast } = useToast();
 
   const plans = [
     {
@@ -13,9 +16,11 @@ export default function PricingCards() {
       price: "$0",
       description: "Perfect for getting started",
       features: [
-        "Up to 5 saved prompts",
-        "Basic AI testing",
-        "Community support",
+        "15 prompt tests per month",
+        "5 AI enhancements per month",
+        "25 prompt slots",
+        "Free models only",
+        "Community access",
       ],
       current: user?.plan === "free",
       buttonText: "Current Plan",
@@ -23,13 +28,15 @@ export default function PricingCards() {
     },
     {
       name: "Pro",
-      price: "$19",
-      description: "For professionals and growing teams",
+      price: "$15",
+      description: "For professionals and creators",
       features: [
-        "Up to 100 saved prompts",
-        "Advanced AI models",
+        "1000 prompt tests/month",
+        "150 AI enhancements/month",
+        "500 prompt slots",
+        "All AI models",
         "Priority support",
-        "Export capabilities",
+        "API access",
       ],
       popular: true,
       current: user?.plan === "pro",
@@ -41,10 +48,13 @@ export default function PricingCards() {
       price: "$49",
       description: "For teams and organizations",
       features: [
-        "Unlimited prompts",
+        "Unlimited prompt tests",
+        "Unlimited AI enhancements",
+        "Unlimited prompt slots",
+        "All AI models",
         "Team collaboration",
-        "Admin dashboard",
-        "Advanced analytics",
+        "Add team members",
+        "Custom support",
       ],
       current: user?.plan === "team",
       buttonText: user?.plan === "team" ? "Current Plan" : "Upgrade to Team",
@@ -52,9 +62,28 @@ export default function PricingCards() {
     },
   ];
 
-  const handleUpgrade = (planName: string) => {
-    // TODO: Implement Stripe checkout
-    console.log(`Upgrading to ${planName} plan`);
+  const handleUpgrade = async (planName: string) => {
+    try {
+      const plan = planName.toLowerCase();
+      const res = await apiRequest("POST", "/api/create-checkout-session", { plan });
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast({
+          title: "Error creating checkout session",
+          description: "Please try again later",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to start upgrade process",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
   return (

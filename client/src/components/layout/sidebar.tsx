@@ -1,16 +1,20 @@
-import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  Edit, 
-  History, 
-  CreditCard, 
-  UserCog 
+import { NavbarUsage } from "@/components/usage/navbar-usage";
+import {
+  LayoutDashboard,
+  Edit,
+  History,
+  CreditCard,
+  UserCog,
+  Wand2,
+  Mic,
+  Users
 } from "lucide-react";
 
 export default function Sidebar() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const [location] = useLocation();
 
   const navigation = [
@@ -25,11 +29,44 @@ export default function Sidebar() {
       icon: Edit,
     },
     {
+      name: "Professional Prompt Creator",
+      href: "/professional-prompt-creator",
+      icon: Mic,
+    },
+    {
+      name: "Community",
+      href: "/community",
+      icon: Users,
+    },
+    {
+      name: "AI Enhancer",
+      href: "/ai-enhancer",
+      icon: Wand2,
+    },
+    {
       name: "Billing",
       href: "/billing",
       icon: CreditCard,
     },
   ];
+
+  // Add team link if user has team plan
+  if (user?.plan === "team" || user?.plan === "enterprise") {
+    navigation.push({
+      name: "Team",
+      href: "/team",
+      icon: Users,
+    });
+  }
+
+  // Add team management link for team/enterprise users
+  if (user?.plan === "team" || user?.plan === "enterprise") {
+    navigation.push({
+      name: "Team",
+      href: "/team",
+      icon: Users,
+    });
+  }
 
   // Add admin link if user is admin
   if (user?.email === "admin@promptops.com" || user?.email === "mourad@admin.com") {
@@ -40,36 +77,25 @@ export default function Sidebar() {
     });
   }
 
-  const planLimits = {
-    free: 5,
-    pro: 100,
-    team: Infinity,
-  };
 
-  const userLimit = planLimits[user?.plan as keyof typeof planLimits] || 5;
-  const usagePercentage = user ? Math.min((user.promptsUsed / userLimit) * 100, 100) : 0;
-  const remainingPrompts = user ? Math.max(userLimit - user.promptsUsed, 0) : 0;
 
   return (
-    <aside className="w-64 bg-card border-r border-border flex-shrink-0 flex flex-col">
-      <nav className="p-4 flex-1">
-        <ul className="space-y-2">
+    <aside className="w-56 lg:w-64 bg-card border-r border-border flex-shrink-0 flex-col hidden lg:flex">
+      <nav className="p-3 lg:p-4 flex-1">
+        <ul className="space-y-1">
           {navigation.map((item) => {
             const isActive = location === item.href;
             return (
               <li key={item.name}>
                 <Link href={item.href}>
                   <div className={cn(
-                    "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all cursor-pointer",
-                    isActive 
-                      ? "text-foreground bg-emerald-500 bg-opacity-20 border border-emerald-500 border-opacity-30" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    "flex items-center space-x-2 lg:space-x-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg transition-colors cursor-pointer",
+                    isActive
+                      ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}>
-                    <item.icon className={cn(
-                      "h-5 w-5",
-                      isActive ? "text-emerald-400" : ""
-                    )} />
-                    <span className={cn(isActive ? "font-medium" : "")}>{item.name}</span>
+                    <item.icon className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                    <span className="font-medium text-sm lg:text-base truncate">{item.name}</span>
                   </div>
                 </Link>
               </li>
@@ -78,28 +104,10 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* Usage indicator */}
-      {user && (
-        <div className="p-4">
-          <div className="bg-background border border-border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">Usage</span>
-              <span className="text-xs text-emerald-400">
-                {user.promptsUsed}/{userLimit === Infinity ? "∞" : userLimit}
-              </span>
-            </div>
-            <div className="w-full bg-border rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-emerald-500 to-emerald-400 h-2 rounded-full transition-all" 
-                style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-              ></div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {userLimit === Infinity ? "Unlimited" : `${remainingPrompts} prompts remaining`}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* New Usage & Plan Information */}
+      <div className="border-t border-border">
+        <NavbarUsage />
+      </div>
     </aside>
   );
 }

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { 
   MessageSquare, 
   Plus, 
@@ -35,7 +35,7 @@ interface SupportTicket {
 }
 
 export default function SupportPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showCreateTicket, setShowCreateTicket] = useState(false);
@@ -46,9 +46,8 @@ export default function SupportPage() {
     category: "general"
   });
 
-  const { data: tickets } = useQuery({
-    queryKey: ["/api/support/tickets"],
-    enabled: !!user,
+  const { data: tickets = [] } = useQuery({
+    queryKey: ["/api/support-tickets"],
   });
 
   const createTicketMutation = useMutation({
@@ -114,7 +113,7 @@ export default function SupportPage() {
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">PromptOps Support</h1>
+                <h1 className="text-2xl font-bold text-white">PromptOp Support</h1>
                 <p className="text-slate-400">Get help with your account and services</p>
               </div>
             </div>
@@ -128,7 +127,7 @@ export default function SupportPage() {
           <div className="space-y-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold text-white mb-4">How can we help you?</h2>
-              <p className="text-slate-300 text-lg">Get support for PromptOps services</p>
+              <p className="text-slate-300 text-lg">Get support for PromptOp services</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
@@ -368,7 +367,7 @@ export default function SupportPage() {
       <footer className="bg-slate-800 border-t border-slate-700 py-8 mt-16">
         <div className="container mx-auto px-4 text-center">
           <p className="text-slate-400">
-            © 2024 PromptOps. Powered by{" "}
+            © 2024 PromptOp. Powered by{" "}
             <a href="https://monzed.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">
               Monzed.com
             </a>

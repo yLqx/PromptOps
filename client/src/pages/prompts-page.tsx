@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+import { useUserUsage } from "@/hooks/use-user-usage";
+import { apiRequest } from "@/lib/queryClient";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import Footer from "@/components/layout/footer";
@@ -12,48 +14,75 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Play, Save } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Plus, Edit, Trash2, Copy, Save } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
+import { supabase, createPrompt as createPromptDb, updatePromptDb, deletePromptDb } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import type { Prompt } from "@shared/schema";
 
 export default function PromptsPage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
+  const { promptsSaved, slotsLimit } = useUserUsage();
   const { toast } = useToast();
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const { data: prompts = [], isLoading } = useQuery<Prompt[]>({
-    queryKey: ["/api/prompts"],
+    queryKey: ["user-prompts"],
+    queryFn: async () => {
+      if (!user) return [] as any[];
+      const { data, error } = await supabase
+        .from('prompts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!user
   });
 
   const createPromptMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/prompts", data);
-      return res.json();
+      if (!user) throw new Error('Not authenticated');
+      return await createPromptDb({
+        user_id: user.id,
+        title: data.title as string,
+        content: data.content as string,
+        description: (data.description as string) || undefined,
+        status: (data.status as string) || 'draft',
+        category_id: undefined,
+        tags: [],
+        visibility: 'private',
+        // Remove moderation_status since it doesn't exist in table
+        created_via_voice: false,
+        likes_count: 0,
+        comments_count: 0,
+        views_count: 0,
+        shares_count: 0,
+      } as any);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/prompts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-prompts"] });
       setIsCreateOpen(false);
       toast({ title: "Prompt created successfully" });
     },
     onError: (error) => {
-      toast({ 
-        title: "Failed to create prompt", 
+      toast({
+        title: "Failed to create prompt",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive"
       });
     },
   });
 
   const updatePromptMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const res = await apiRequest("PUT", `/api/prompts/${id}`, data);
-      return res.json();
+      return await updatePromptDb(id, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/prompts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-prompts"] });
       setIsEditOpen(false);
       setSelectedPrompt(null);
       toast({ title: "Prompt updated successfully" });
@@ -62,10 +91,10 @@ export default function PromptsPage() {
 
   const deletePromptMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/prompts/${id}`);
+      await deletePromptDb(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/prompts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-prompts"] });
       toast({ title: "Prompt deleted successfully" });
     },
   });
@@ -127,13 +156,20 @@ export default function PromptsPage() {
         <main className="flex-1 overflow-auto p-6">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-foreground mb-2">My Prompts</h2>
-              <p className="text-muted-foreground">Create, edit, and manage your AI prompts</p>
+              <h1 className="text-3xl font-bold text-foreground mb-2 font-['DM_Sans']">My Prompts</h1>
+              <p className="text-muted-foreground font-['DM_Sans']">Create, edit, and manage your AI prompts</p>
+              {user && (
+                <div className="mt-2">
+                  <Badge className="text-sm bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-['DM_Sans'] font-semibold">
+                    {promptsSaved}/{slotsLimit === Infinity ? "∞" : slotsLimit} slots used
+                  </Badge>
+                </div>
+              )}
             </div>
-            
+
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700">
+                <Button className="bg-emerald-600 hover:bg-emerald-700">
                   <Plus className="mr-2 h-4 w-4" />
                   New Prompt
                 </Button>
@@ -205,33 +241,43 @@ export default function PromptsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {prompts.map((prompt) => (
-                <Card key={prompt.id} className="hover:border-emerald-500 transition-colors">
-                  <CardHeader>
+                <Card key={prompt.id} className="hover:border-emerald-500/50 transition-colors">
+                  <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">{prompt.title}</CardTitle>
-                        <CardDescription className="mt-1">
-                          {prompt.description || "No description"}
-                        </CardDescription>
+                      <div className="flex-1">
+                        <CardTitle className="text-lg text-foreground">{prompt.title}</CardTitle>
+                        {prompt.description && (
+                          <CardDescription className="mt-1">
+                            {prompt.description}
+                          </CardDescription>
+                        )}
                       </div>
-                      <Badge variant={prompt.status === "active" ? "default" : "secondary"}>
-                        {prompt.status}
+                      <Badge
+                        variant="outline"
+                        className={prompt.status === "active" ?
+                          "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
+                          "bg-gray-500/20 text-gray-400 border-gray-500/30"
+                        }
+                      >
+                        {prompt.status || "draft"}
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
                       {prompt.content}
                     </p>
-                    <div className="flex space-x-2">
+                    <div className="flex gap-2">
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={() => handleTestPrompt(prompt)}
-                        disabled={testPromptMutation.isPending}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => {
+                          navigator.clipboard.writeText(prompt.content);
+                          toast({ title: "Prompt copied to clipboard!" });
+                        }}
                       >
-                        <Play className="mr-1 h-3 w-3" />
-                        Test
+                        <Copy className="mr-1 h-3 w-3" />
+                        Copy
                       </Button>
                       <Button
                         size="sm"
@@ -247,6 +293,7 @@ export default function PromptsPage() {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30"
                         onClick={() => deletePromptMutation.mutate(prompt.id)}
                         disabled={deletePromptMutation.isPending}
                       >

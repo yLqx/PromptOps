@@ -1,8 +1,8 @@
-import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { Redirect } from "wouter";
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
 
   // This is now the home route that redirects authenticated users to dashboard
   if (user) {

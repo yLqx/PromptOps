@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import ModerationDashboard from "@/components/admin/moderation-dashboard";
 import { 
   Users, 
   Ticket, 
@@ -32,7 +33,7 @@ import {
 } from "lucide-react";
 
 export default function AdminPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useSupabaseAuth();
   const { toast } = useToast();
   
   // State for ticket management
@@ -146,7 +147,7 @@ export default function AdminPage() {
               </div>
               <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
             </div>
-            <p className="text-muted-foreground">Welcome {user.username}! Managing PromptOps platform.</p>
+            <p className="text-muted-foreground">Welcome {user.username}! Managing PromptOp platform.</p>
           </div>
 
           {/* Admin Stats Cards */}
@@ -217,6 +218,7 @@ export default function AdminPage() {
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="moderation">Moderation</TabsTrigger>
               <TabsTrigger value="tickets">Support Tickets</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
@@ -277,6 +279,10 @@ export default function AdminPage() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="moderation" className="space-y-6">
+              <ModerationDashboard />
             </TabsContent>
 
             <TabsContent value="users" className="space-y-6">

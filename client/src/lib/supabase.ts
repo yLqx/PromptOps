@@ -52,6 +52,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
       plan: 'free',
       prompts_used: 0,
       enhancements_used: 0,
+      api_calls_used: 0,
       bio: undefined,
       website: undefined,
       location: undefined,
@@ -141,11 +142,19 @@ export interface User {
   plan: 'free' | 'pro' | 'team' | 'enterprise';
   prompts_used: number;
   enhancements_used: number;
+  api_calls_used: number;
+  stripe_customer_id?: string;
+  stripe_subscription_id?: string;
+  subscription_status?: string;
+  subscription_current_period_end?: string;
   bio?: string;
   website?: string;
   location?: string;
   created_at: string;
   updated_at: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  isTeamOwner?: boolean;
 }
 
 export interface Category {

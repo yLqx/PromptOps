@@ -40,7 +40,7 @@ export default function FileUploadPromptCreator({ onClose }: FileUploadPromptCre
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileContent, setFileContent] = useState("");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
-  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash");
   const [isPublic, setIsPublic] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   

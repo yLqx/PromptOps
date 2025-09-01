@@ -10,6 +10,35 @@ export default function PricingCards() {
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
 
+  // Get current user plan
+  const currentPlan = user?.plan || 'free';
+
+  // Determine which plans can be upgraded to
+  const canUpgradeTo = (planName: string) => {
+    const plan = planName.toLowerCase();
+
+    if (currentPlan === 'free') {
+      return plan === 'pro' || plan === 'team'; // Free can upgrade to Pro or Team
+    } else if (currentPlan === 'pro') {
+      return plan === 'team'; // Pro can only upgrade to Team
+    } else if (currentPlan === 'team') {
+      return false; // Team can't upgrade (highest plan)
+    }
+    return false;
+  };
+
+  const getButtonText = (planName: string) => {
+    const plan = planName.toLowerCase();
+
+    if (currentPlan === plan) {
+      return 'Current Plan';
+    } else if (canUpgradeTo(planName)) {
+      return 'Upgrade';
+    } else {
+      return 'Not Available';
+    }
+  };
+
   const plans = [
     {
       name: "Free",
@@ -22,13 +51,13 @@ export default function PricingCards() {
         "Free models only",
         "Community access",
       ],
-      current: user?.plan === "free",
+      current: currentPlan === "free",
       buttonText: "Current Plan",
       buttonDisabled: true,
     },
     {
       name: "Pro",
-      price: "$15",
+      price: "$19",
       description: "For professionals and creators",
       features: [
         "1000 prompt tests/month",
@@ -39,32 +68,43 @@ export default function PricingCards() {
         "API access",
       ],
       popular: true,
-      current: user?.plan === "pro",
-      buttonText: user?.plan === "pro" ? "Current Plan" : "Upgrade to Pro",
-      buttonDisabled: user?.plan === "pro",
+      current: currentPlan === "pro",
+      buttonText: getButtonText("Pro"),
+      buttonDisabled: !canUpgradeTo("Pro") && currentPlan !== "pro",
     },
     {
       name: "Team",
       price: "$49",
       description: "For teams and organizations",
       features: [
-        "Unlimited prompt tests",
-        "Unlimited AI enhancements",
+        "7500 prompt tests/month",
+        "2000 AI enhancements/month",
         "Unlimited prompt slots",
         "All AI models",
         "Team collaboration",
         "Add team members",
         "Custom support",
       ],
-      current: user?.plan === "team",
-      buttonText: user?.plan === "team" ? "Current Plan" : "Upgrade to Team",
-      buttonDisabled: user?.plan === "team",
+      current: currentPlan === "team",
+      buttonText: getButtonText("Team"),
+      buttonDisabled: !canUpgradeTo("Team") && currentPlan !== "team",
     },
   ];
 
   const handleUpgrade = async (planName: string) => {
     try {
       const plan = planName.toLowerCase();
+
+      // Check if upgrade is allowed
+      if (!canUpgradeTo(planName)) {
+        toast({
+          title: "Upgrade not available",
+          description: `You cannot upgrade to ${planName} from your current ${currentPlan} plan.`,
+          variant: "destructive"
+        });
+        return;
+      }
+
       const res = await apiRequest("POST", "/api/create-checkout-session", { plan });
       const data = await res.json();
 
@@ -115,17 +155,17 @@ export default function PricingCards() {
               ))}
             </ul>
             
-            <Button 
+            <Button
               className={`w-full ${
-                plan.popular 
-                  ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700" 
-                  : plan.name === "Team" 
+                plan.popular && canUpgradeTo(plan.name)
+                  ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
+                  : plan.name === "Team" && canUpgradeTo(plan.name)
                     ? "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
                     : ""
               }`}
-              variant={plan.buttonDisabled ? "secondary" : "default"}
-              disabled={plan.buttonDisabled}
-              onClick={() => !plan.buttonDisabled && handleUpgrade(plan.name)}
+              variant={plan.buttonDisabled || !canUpgradeTo(plan.name) ? "secondary" : "default"}
+              disabled={plan.buttonDisabled || (currentPlan !== plan.name.toLowerCase() && !canUpgradeTo(plan.name))}
+              onClick={() => canUpgradeTo(plan.name) && handleUpgrade(plan.name)}
             >
               {plan.buttonText}
             </Button>

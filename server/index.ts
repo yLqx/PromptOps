@@ -10,6 +10,9 @@ import {
 } from "./middleware/security";
 import { supabaseAuth } from "./supabase-auth";
 import { supabase } from "./supabase";
+import { setupAdminRoutes } from "./admin-routes";
+import { initializeAdminUser } from "./admin-auth";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
@@ -22,6 +25,7 @@ app.use(validateInput);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser()); // Add cookie parser for admin authentication
 app.use(supabaseAuth);
 
 app.use((req, res, next) => {
@@ -55,8 +59,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize admin user
+  await initializeAdminUser();
+
   // Register all routes
   const server = await registerRoutes(app);
+
+  // Setup admin routes
+  setupAdminRoutes(app);
   
   // Temporary admin endpoint to update user plan
   app.post('/api/admin/update-plan', async (req, res) => {

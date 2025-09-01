@@ -147,12 +147,12 @@ export default function IntegrationsPage() {
             </div>
             
             <div className="flex items-center gap-3">
-              <Link href="/auth">
+              <Link href="/login">
                 <Button variant="outline" className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10">
                   Sign In
                 </Button>
               </Link>
-              <Link href="/auth">
+              <Link href="/register">
                 <Button className="bg-emerald-600 hover:bg-emerald-700">
                   Get Started
                 </Button>

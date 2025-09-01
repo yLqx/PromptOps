@@ -6,6 +6,11 @@ import { supabaseAdmin } from "./supabase";
 // It also provides a req.isAuthenticated() function compatible with existing code
 export async function supabaseAuth(req: any, res: Response, next: NextFunction) {
   try {
+    // Skip admin routes - they use their own authentication
+    if (req.path.startsWith('/api/admin/')) {
+      return next();
+    }
+
     const authHeader = req.headers["authorization"] as string | undefined;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return next(); // no token, fall back to any other auth (e.g., passport session)

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "./supabase";
 import { type IStorage } from "./mock-storage";
+import { type User } from "@shared/schema";
 import session from "express-session";
 import MemoryStore from "memorystore";
 
@@ -111,16 +112,7 @@ export class SupabaseStorage implements IStorage {
     return data[0];
   }
 
-  async getUserByEmail(email: string): Promise<any | undefined> {
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .limit(1);
 
-    if (error || !data || data.length === 0) return undefined;
-    return data[0];
-  }
 
   async createUser(insertUser: any): Promise<any> {
     const { data, error } = await supabaseAdmin
@@ -131,6 +123,17 @@ export class SupabaseStorage implements IStorage {
 
     if (error || !data || data.length === 0) throw error || new Error('Failed to create user');
     return data[0];
+  }
+
+  async getUserById(id: string): Promise<any | null> {
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+    return data || null;
   }
 
   async updateUserUsage(id: string, promptsUsed: number): Promise<any> {
@@ -167,6 +170,42 @@ export class SupabaseStorage implements IStorage {
     if (error) throw error;
   }
 
+  async updateUser(id: string, updates: any): Promise<any> {
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateUserStripeInfo(userId: string, data: {
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string
+  }): Promise<User> {
+    const updateData: any = {};
+
+    if (data.stripeCustomerId !== undefined) {
+      updateData.stripe_customer_id = data.stripeCustomerId;
+    }
+    if (data.stripeSubscriptionId !== undefined) {
+      updateData.stripe_subscription_id = data.stripeSubscriptionId;
+    }
+
+    const { data: result, error } = await supabaseAdmin
+      .from('users')
+      .update(updateData)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return result;
+  }
+
   async getSubscriptionLimits(): Promise<any[]> {
     const { data, error } = await supabaseAdmin
       .from('subscription_limits')
@@ -201,15 +240,38 @@ export class SupabaseStorage implements IStorage {
     return data[0];
   }
 
-  async getPrompts(limit = 20, offset = 0): Promise<any[]> {
+  async getPrompts(userId: string): Promise<any[]> {
     const { data, error } = await supabaseAdmin
       .from('prompts')
       .select('*')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
     
     if (error) throw error;
     return data || [];
+  }
+
+  async updatePrompt(id: string, userId: string, updates: any): Promise<any> {
+    const { data, error } = await supabaseAdmin
+      .from('prompts')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async deletePrompt(id: string, userId: string): Promise<void> {
+    const { error } = await supabaseAdmin
+      .from('prompts')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) throw error;
   }
 
   async getUserPrompts(userId: string): Promise<any[]> {
@@ -319,6 +381,15 @@ export class SupabaseStorage implements IStorage {
     return data[0];
   }
 
+  async deleteSupportTicket(id: string): Promise<void> {
+    const { error } = await supabaseAdmin
+      .from('support_tickets')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
   // Placeholder methods for compatibility
   async verifyPassword(email: string, password: string): Promise<boolean> {
     return false; // Not used with Supabase auth
@@ -420,15 +491,69 @@ export class SupabaseStorage implements IStorage {
     return data || [];
   }
 
-  async getAllSupportTickets(): Promise<any[]> {
-    const { data, error } = await supabaseAdmin
-      .from('support_tickets')
-      .select('*')
-      .order('created_at', { ascending: false });
+
+
+  async updateUserPassword(userId: string, newPassword: string): Promise<void> {
+    // For Supabase Auth, we always use the admin API to update password
+    // The password will be automatically hashed by Supabase
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      password: newPassword
+    });
 
     if (error) throw error;
-    return data || [];
   }
+
+
+
+  async storePasswordResetToken(userId: string, token: string, expires: Date): Promise<void> {
+    const { error } = await supabaseAdmin
+      .from('password_reset_tokens')
+      .upsert({
+        user_id: userId,
+        token,
+        expires: expires.toISOString(),
+        created_at: new Date().toISOString()
+      });
+
+    if (error) throw error;
+  }
+
+  async getPasswordResetToken(token: string): Promise<{ userId: string; expires: Date } | null> {
+    const { data, error } = await supabaseAdmin
+      .from('password_reset_tokens')
+      .select('user_id, expires')
+      .eq('token', token)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    if (!data) return null;
+
+    return {
+      userId: data.user_id,
+      expires: new Date(data.expires)
+    };
+  }
+
+  async deletePasswordResetToken(token: string): Promise<void> {
+    const { error } = await supabaseAdmin
+      .from('password_reset_tokens')
+      .delete()
+      .eq('token', token);
+
+    if (error) throw error;
+  }
+
+  async getUserByEmail(email: string): Promise<any | undefined> {
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+    return data || undefined;
+  }
+
 }
 
 export const storage = new SupabaseStorage();

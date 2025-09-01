@@ -1,5 +1,4 @@
 import { Link } from "wouter";
-import { Zap } from "lucide-react";
 
 interface LogoProps {
   className?: string;
@@ -9,9 +8,9 @@ interface LogoProps {
 
 export function Logo({ className = "", size = "md", clickable = true }: LogoProps) {
   const sizeClasses = {
-    sm: "h-8 w-8",
-    md: "h-12 w-12", 
-    lg: "h-16 w-16"
+    sm: "h-10",
+    md: "h-16",
+    lg: "h-20"
   };
 
   const textSizeClasses = {
@@ -22,11 +21,12 @@ export function Logo({ className = "", size = "md", clickable = true }: LogoProp
 
   const logoContent = (
     <div className={`flex items-center space-x-3 ${className}`}>
-      <div className={`${sizeClasses[size]} bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg`}>
-        <Zap className="text-white h-6 w-6" />
-      </div>
+      <img
+        src="/logo.png"
+        alt="PromptOp Logo"
+        className={`${sizeClasses[size]} object-contain`}
+      />
       <span className={`font-bold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent ${textSizeClasses[size]}`}>
-        promptop
       </span>
     </div>
   );

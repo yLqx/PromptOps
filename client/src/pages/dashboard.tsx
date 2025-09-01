@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Zap, TrendingUp, FileText, Sparkles, AlertTriangle, CheckCircle, Clock, Users, X, ExternalLink, MessageSquare, Plus, Save } from "lucide-react";
+import { Zap, TrendingUp, FileText, Sparkles, AlertTriangle, CheckCircle, Clock, Users, X, ExternalLink, MessageSquare, Plus, Save, Download } from "lucide-react";
 import { useUserUsage } from "@/hooks/use-user-usage";
 import ModelSelector from "@/components/ui/model-selector";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -40,7 +40,7 @@ export default function DashboardPage() {
   
   // State for functionality
   const [promptText, setPromptText] = useState("");
-  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash");
   const [aiResponse, setAiResponse] = useState("");
   const [responseTime, setResponseTime] = useState("--");
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -101,10 +101,29 @@ export default function DashboardPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Failed to test prompt", 
+      toast({
+        title: "Failed to test prompt",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive"
+      });
+    },
+  });
+
+  // Save Prompt Mutation
+  const savePromptMutation = useMutation({
+    mutationFn: async (data: { title: string; content: string; description?: string }) => {
+      const res = await apiRequest("POST", "/api/prompts", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/prompts"] });
+      toast({ title: "Prompt saved successfully!" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to save prompt",
+        description: error.message,
+        variant: "destructive"
       });
     },
   });
@@ -131,7 +150,40 @@ export default function DashboardPage() {
     testPromptMutation.mutate({ promptContent: promptText, model: selectedModel });
   };
 
+  // Save prompt function
+  const handleSavePrompt = () => {
+    if (!promptText.trim()) {
+      toast({ title: "Please enter a prompt to save", variant: "destructive" });
+      return;
+    }
 
+    const title = promptText.slice(0, 50) + (promptText.length > 50 ? "..." : "");
+    savePromptMutation.mutate({
+      title,
+      content: promptText,
+      description: `Tested with ${selectedModel}`
+    });
+  };
+
+  // Save response as .txt file
+  const handleSaveResponse = () => {
+    if (!aiResponse) {
+      toast({ title: "No response to save", variant: "destructive" });
+      return;
+    }
+
+    const blob = new Blob([aiResponse], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ai-response-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({ title: "Response saved as .txt file!" });
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -270,16 +322,28 @@ export default function DashboardPage() {
                   />
                 </div>
 
-                <Button
-                  size="lg"
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-600 text-white font-medium py-3"
-                  onClick={handleTestPrompt}
-                  disabled={testPromptMutation.isPending || !canUsePrompts}
-                >
-                  <Zap className="mr-2 h-5 w-5" />
-                  {!canUsePrompts ? "Limit Reached - Upgrade Plan" :
-                   testPromptMutation.isPending ? "Testing..." : "TEST PROMPT"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-600 text-white font-medium py-3"
+                    onClick={handleTestPrompt}
+                    disabled={testPromptMutation.isPending || !canUsePrompts}
+                  >
+                    <Zap className="mr-2 h-5 w-5" />
+                    {!canUsePrompts ? "Limit Reached - Upgrade Plan" :
+                     testPromptMutation.isPending ? "Testing..." : "TEST PROMPT"}
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-emerald-500 text-emerald-400 hover:bg-emerald-500/10 font-medium py-3 px-4"
+                    onClick={handleSavePrompt}
+                    disabled={savePromptMutation.isPending || !canSavePrompts || !promptText.trim()}
+                  >
+                    <Save className="h-5 w-5" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -295,9 +359,14 @@ export default function DashboardPage() {
                     <p className="text-muted-foreground text-sm font-['DM_Sans']">Enhanced AI responses</p>
                   </div>
                   {aiResponse && (
-                    <Button size="sm" variant="outline" className="border-emerald-500 text-emerald-400 hover:bg-emerald-500/10">
-                      <Save className="h-4 w-4 mr-2" />
-                      Save
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-emerald-500 text-emerald-400 hover:bg-emerald-500/10"
+                      onClick={handleSaveResponse}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Save .txt
                     </Button>
                   )}
                 </div>

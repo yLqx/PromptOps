@@ -18,6 +18,8 @@ import PrivacyPage from "@/pages/privacy-page";
 import SupportPage from "@/pages/support-page";
 import LoginPage from "./pages/login-page";
 import RegisterPage from "./pages/register-page";
+import ForgotPasswordPage from "@/pages/forgot-password-page";
+import ResetPasswordPage from "@/pages/reset-password-page";
 import PromptsPage from "@/pages/prompts-page";
 import BillingPage from "@/pages/billing-page";
 import AdminPage from "@/pages/admin-page";
@@ -28,6 +30,11 @@ import CommunityHub from "@/pages/community-hub";
 import CreateCommunityPost from "@/pages/create-community-post";
 import CommunityPostDetail from "@/pages/community-post-detail";
 import TestPlanPage from "@/pages/test-plan-page";
+import AdminLogin from "@/pages/admin/AdminLogin";
+import AdminLayout from "@/pages/admin/AdminLayout";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminAIModels from "@/pages/admin/AdminAIModels";
 
 import ProfilePage from "@/pages/profile-page";
 import UserProfilePage from "@/pages/user-profile-page";
@@ -62,6 +69,8 @@ function Router() {
       <Route path="/support" component={SupportPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/home" component={HomePage} />
       <ProtectedRoute path="/dashboard" component={DashboardPage} />
       <ProtectedRoute path="/prompts" component={PromptsPage} />
@@ -76,6 +85,31 @@ function Router() {
       <ProtectedRoute path="/user/:username" component={UserProfilePage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
       <ProtectedRoute path="/test-plan" component={TestPlanPage} />
+
+      {/* Admin Panel Routes */}
+      <Route path="/admin-pl/login" component={AdminLogin} />
+      <Route path="/admin-pl">
+        {() => (
+          <AdminLayout>
+            <AdminDashboard />
+          </AdminLayout>
+        )}
+      </Route>
+      <Route path="/admin-pl/users">
+        {() => (
+          <AdminLayout>
+            <AdminUsers />
+          </AdminLayout>
+        )}
+      </Route>
+      <Route path="/admin-pl/ai-models">
+        {() => (
+          <AdminLayout>
+            <AdminAIModels />
+          </AdminLayout>
+        )}
+      </Route>
+
       <Route component={NotFound} />
     </Switch>
     </>

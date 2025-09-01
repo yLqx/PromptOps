@@ -1,2 +1,3 @@
 // Using Supabase client storage (more reliable than direct DB)
-export { storage, type IStorage } from "./supabase-storage";
+export { storage } from "./supabase-storage";
+export { type IStorage } from "./mock-storage";

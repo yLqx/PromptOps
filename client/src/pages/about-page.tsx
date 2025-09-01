@@ -91,7 +91,7 @@ export default function AboutPage() {
               <Link href="/pricing">
                 <a className="text-slate-300 hover:text-emerald-400 transition-colors">Pricing</a>
               </Link>
-              <Link href="/auth">
+              <Link href="/login">
                 <Button variant="outline" className="border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-white">
                   Sign In
                 </Button>
@@ -226,7 +226,7 @@ export default function AboutPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold text-white mb-4">Ready to join us?</h2>
           <p className="text-xl text-slate-300 mb-8">Start building better AI applications today</p>
-          <Link href="/auth">
+          <Link href="/login">
             <Button size="lg" className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 text-lg">
               Get Started Now
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -239,7 +239,7 @@ export default function AboutPage() {
       <footer className="bg-slate-900 border-t border-slate-700 py-8">
         <div className="container mx-auto px-4 text-center">
           <p className="text-slate-400">
-            © 2024 PromptOps. Powered by{" "}
+            © 2025 PromptOps. Powered by{" "}
             <a href="https://monzed.com" className="text-emerald-400 hover:text-emerald-300 transition-colors">
               Monzed.com
             </a>

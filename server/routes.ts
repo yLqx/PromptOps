@@ -19,6 +19,84 @@ const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SEC
 // Server start time for auto-logout feature
 const SERVER_START_TIME = Date.now().toString();
 
+// Helper function to calculate prompt quality score
+function calculatePromptScore(prompt: string): number {
+  let score = 0;
+  const length = prompt.trim().length;
+
+  // Length scoring (0-20 points)
+  if (length < 10) score += 5;
+  else if (length < 30) score += 10;
+  else if (length < 100) score += 15;
+  else score += 20;
+
+  // Specificity scoring (0-25 points)
+  const specificWords = ['specific', 'detailed', 'exactly', 'precisely', 'format', 'style', 'tone'];
+  const hasSpecificWords = specificWords.some(word => prompt.toLowerCase().includes(word));
+  if (hasSpecificWords) score += 15;
+  else if (prompt.includes('please') || prompt.includes('help')) score += 8;
+  else score += 5;
+
+  // Context scoring (0-25 points)
+  const contextWords = ['context', 'background', 'for', 'about', 'regarding', 'concerning'];
+  const hasContext = contextWords.some(word => prompt.toLowerCase().includes(word));
+  if (hasContext) score += 15;
+  else if (prompt.split(' ').length > 10) score += 10;
+  else score += 5;
+
+  // Structure scoring (0-20 points)
+  const hasQuestions = prompt.includes('?');
+  const hasInstructions = prompt.toLowerCase().includes('write') || prompt.toLowerCase().includes('create') || prompt.toLowerCase().includes('generate');
+  if (hasQuestions && hasInstructions) score += 15;
+  else if (hasQuestions || hasInstructions) score += 10;
+  else score += 5;
+
+  // Clarity scoring (0-10 points)
+  const sentences = prompt.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  if (sentences.length > 1) score += 8;
+  else score += 5;
+
+  return Math.min(Math.max(score, 5), 50); // Cap original scores at 50 to show improvement potential
+}
+
+// Helper function to create fallback enhancement
+function createFallbackEnhancement(originalPrompt: string): string {
+  const prompt = originalPrompt.trim();
+
+  // Basic enhancement patterns
+  if (prompt.toLowerCase().startsWith('write')) {
+    return `${prompt}
+
+Please ensure your response:
+- Is well-structured and organized
+- Uses clear, engaging language
+- Includes relevant details and examples
+- Follows proper formatting conventions
+- Maintains consistency in tone and style throughout`;
+  }
+
+  if (prompt.toLowerCase().includes('story')) {
+    return `Create a compelling story about ${prompt.replace(/write.*story.*about/i, '').trim()}.
+
+Requirements:
+- Include vivid descriptions and character development
+- Use engaging dialogue and narrative flow
+- Maintain consistent pacing and tension
+- Ensure a satisfying conclusion
+- Target length: 500-1000 words`;
+  }
+
+  // Generic enhancement
+  return `${prompt}
+
+Please provide a comprehensive response that:
+- Addresses all aspects of the request thoroughly
+- Uses clear, professional language
+- Includes specific examples and details where relevant
+- Is well-organized with logical flow
+- Meets high quality standards for accuracy and completeness`;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
@@ -589,13 +667,63 @@ Generate a professional prompt that would help users effectively work with this 
     }
   });
 
+  // Generate prompt from voice transcript
+  app.post("/api/generate-prompt-from-voice", requireAuth, async (req, res) => {
+    try {
+      const { content, model } = req.body;
+
+      if (!content) {
+        return res.status(400).json({ message: "Voice transcript content is required" });
+      }
+
+      // Create a specialized prompt for generating prompts from voice transcript
+      const systemPrompt = `You are an expert prompt engineer. Your task is to analyze the provided voice transcript and generate a high-quality, specific prompt that could be used with AI models to accomplish what the user described.
+
+Guidelines:
+1. Create a prompt that is clear, specific, and actionable
+2. Interpret the user's intent from their natural speech
+3. Make the prompt professional and well-structured
+4. Focus on the most valuable interpretation of what the user wants
+5. Keep the prompt concise but comprehensive
+6. Transform casual speech into professional prompt language
+
+Voice Transcript: ${content}
+
+Generate a professional prompt based on what the user described:`;
+
+      const aiResponse = await testPromptWithAI(systemPrompt, model);
+
+      if (!aiResponse.success) {
+        return res.status(500).json({
+          message: "Failed to generate prompt from voice",
+          error: aiResponse.error
+        });
+      }
+
+      res.json({
+        prompt: aiResponse.response,
+        model: aiResponse.model,
+        responseTime: aiResponse.responseTime,
+        sourceTranscript: content
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Test prompt with AI
   app.post("/api/test-prompt", requireAuth, async (req, res) => {
     try {
-      const { promptContent, promptId, model } = req.body;
-      
+      let { promptContent, promptId, model } = req.body;
+
+      // ULTIMATE FIX: Force correct model at the API level
+      if (model === "gemini-2.5-flash") {
+        console.log('🚨 TEST API LEVEL FIX: gemini-2.5-flash -> gemini-1.5-flash');
+        model = "gemini-1.5-flash";
+      }
+
       console.log('🔍 Test prompt request - model:', model, 'promptContent length:', promptContent?.length);
-      
+
       if (!promptContent) {
         return res.status(400).json({ message: "Prompt content is required" });
       }
@@ -791,20 +919,142 @@ Generate a professional prompt that would help users effectively work with this 
       }
     });
 
+    // Get subscription details
+    app.get("/api/subscription", requireAuth, async (req, res) => {
+      try {
+        const user = req.user!;
+
+        if (!user.stripeSubscriptionId) {
+          return res.json({ subscription: null });
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+
+        res.json({
+          status: subscription.status,
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          plan: user.plan,
+          price_id: subscription.items.data[0]?.price.id
+        });
+      } catch (error: any) {
+        res.status(500).json({ message: error.message });
+      }
+    });
+
+    // Create customer portal session
+    app.post("/api/create-portal-session", requireAuth, async (req, res) => {
+      try {
+        const user = req.user!;
+
+        if (!user.stripeCustomerId) {
+          return res.status(400).json({ message: "No Stripe customer found" });
+        }
+
+        const session = await stripe.billingPortal.sessions.create({
+          customer: user.stripeCustomerId,
+          return_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/billing`,
+        });
+
+        res.json({ url: session.url });
+      } catch (error: any) {
+        res.status(500).json({ message: error.message });
+      }
+    });
+
     app.post("/api/cancel-subscription", requireAuth, async (req, res) => {
       try {
         const user = req.user!;
-        
+
         if (user.stripeSubscriptionId) {
-          await stripe.subscriptions.cancel(user.stripeSubscriptionId);
-          await storage.updateUserPlan(user.id, "free");
-          await storage.updateUserStripeInfo(user.id, {
-            stripeSubscriptionId: undefined,
+          // Cancel at period end instead of immediately
+          await stripe.subscriptions.update(user.stripeSubscriptionId, {
+            cancel_at_period_end: true
           });
         }
 
         res.json({ success: true });
       } catch (error: any) {
+        res.status(500).json({ message: error.message });
+      }
+    });
+
+    // Reactivate subscription
+    app.post("/api/reactivate-subscription", requireAuth, async (req, res) => {
+      try {
+        const user = req.user!;
+
+        if (user.stripeSubscriptionId) {
+          await stripe.subscriptions.update(user.stripeSubscriptionId, {
+            cancel_at_period_end: false
+          });
+        }
+
+        res.json({ success: true });
+      } catch (error: any) {
+        res.status(500).json({ message: error.message });
+      }
+    });
+
+    // Manual sync subscription status (for when webhooks aren't set up yet)
+    app.post("/api/sync-subscription", requireAuth, async (req, res) => {
+      try {
+        const user = req.user!;
+
+        if (!user.stripeCustomerId) {
+          return res.status(400).json({ message: "No Stripe customer found" });
+        }
+
+        // Get all subscriptions for this customer
+        const subscriptions = await stripe.subscriptions.list({
+          customer: user.stripeCustomerId,
+          status: 'active',
+          limit: 1
+        });
+
+        if (subscriptions.data.length > 0) {
+          const subscription = subscriptions.data[0];
+          const priceId = subscription.items.data[0]?.price.id;
+
+          // Map price ID to plan
+          let plan = 'free';
+          if (priceId === process.env.STRIPE_PRO_PRICE_ID) {
+            plan = 'pro';
+          } else if (priceId === process.env.STRIPE_TEAM_PRICE_ID) {
+            plan = 'team';
+          } else if (priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) {
+            plan = 'enterprise';
+          }
+
+          // Update user plan and reset usage
+          await supabaseAdmin
+            .from('users')
+            .update({
+              plan,
+              stripe_subscription_id: subscription.id,
+              subscription_status: subscription.status,
+              subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              prompts_used: 0,
+              enhancements_used: 0,
+              api_calls_used: 0
+            })
+            .eq('id', user.id);
+
+          console.log(`✅ Synced user ${user.id} to ${plan} plan`);
+
+          res.json({
+            success: true,
+            plan,
+            message: `Successfully synced to ${plan} plan!`
+          });
+        } else {
+          res.json({
+            success: false,
+            message: "No active subscription found"
+          });
+        }
+      } catch (error: any) {
+        console.error('Sync subscription error:', error);
         res.status(500).json({ message: error.message });
       }
     });
@@ -1033,33 +1283,9 @@ Generate a professional prompt that would help users effectively work with this 
     }
   });
 
-  // Admin routes
-  app.get("/api/admin/users", requireAuth, async (req, res) => {
-    // Simple admin check (allow both admin emails)
-    if (req.user!.email !== "admin@promptops.com" && req.user!.email !== "mourad@admin.com") {
-      return res.sendStatus(403);
-    }
+  // Admin users route moved to admin-routes.ts
 
-    try {
-      const users = await storage.getAllUsers();
-      res.json(users);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/admin/tickets", requireAuth, async (req, res) => {
-    if (req.user!.email !== "admin@promptops.com" && req.user!.email !== "mourad@admin.com") {
-      return res.sendStatus(403);
-    }
-
-    try {
-      const tickets = await storage.getAllSupportTickets(); // All tickets for admin
-      res.json(tickets);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
+  // Admin tickets route moved to admin-routes.ts
 
   app.put("/api/admin/tickets/:id", requireAuth, async (req, res) => {
     if (req.user!.email !== "admin@promptops.com" && req.user!.email !== "mourad@admin.com") {
@@ -1090,35 +1316,13 @@ Generate a professional prompt that would help users effectively work with this 
     }
   });
 
-  app.get("/api/admin/stats", requireAuth, async (req, res) => {
-    if (req.user!.email !== "admin@promptops.com" && req.user!.email !== "mourad@admin.com") {
-      return res.sendStatus(403);
-    }
-
-    try {
-      const users = await storage.getAllUsers();
-      const tickets = await storage.getAllSupportTickets();
-      
-      const stats = {
-        totalUsers: users.length,
-        activeSubscriptions: users.filter(u => u.stripeSubscriptionId).length,
-        monthlyRevenue: users.filter(u => u.plan === "pro").length * 19 + users.filter(u => u.plan === "team").length * 49,
-        apiCalls: 0, // Could be tracked if needed
-        openTickets: tickets.filter(t => t.status === "open").length,
-        totalTickets: tickets.length
-      };
-      
-      res.json(stats);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
+  // Admin stats route moved to admin-routes.ts
 
   // Change Password endpoint
   app.post("/api/change-password", requireAuth, async (req, res) => {
     try {
       const { newPassword } = req.body;
-      
+
       if (!newPassword || newPassword.length < 6) {
         return res.status(400).json({ message: "Password must be at least 6 characters" });
       }
@@ -1127,130 +1331,235 @@ Generate a professional prompt that would help users effectively work with this 
       const { scrypt, randomBytes } = await import("crypto");
       const { promisify } = await import("util");
       const scryptAsync = promisify(scrypt);
-      
+
       const salt = randomBytes(16).toString("hex");
       const buf = (await scryptAsync(newPassword, salt, 64)) as Buffer;
       const hashedPassword = `${buf.toString("hex")}.${salt}`;
 
       await storage.updateUserPassword(req.user!.id, hashedPassword);
-      
+
       res.json({ message: "Password changed successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  // AI Prompt Enhancement Endpoint
-  app.post("/api/enhance-prompt", requireAuth, async (req, res) => {
-
-    const user = req.user!;
-
-    // Get fresh user data from database
-    const currentUser = await storage.getUser(user.id);
-    if (!currentUser) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    // Check enhancement limits from subscription_limits table with hardcoded fallback
-    const { data: subscriptionLimits } = await supabaseAdmin
-      .from('subscription_limits')
-      .select('ai_enhancements_per_month')
-      .eq('tier', currentUser.plan)
-      .single();
-
-    // Hardcoded fallback limits
-    const hardcodedEnhancementLimits = {
-      free: 5,
-      pro: 150,
-      team: 2000,
-      enterprise: -1
-    };
-
-    const userLimit = subscriptionLimits?.ai_enhancements_per_month ??
-      hardcodedEnhancementLimits[currentUser.plan as keyof typeof hardcodedEnhancementLimits] ?? 5;
-    const enhancementsUsed = currentUser.enhancements_used || 0;
-
-    if (userLimit !== -1 && enhancementsUsed >= userLimit) {
-      return res.status(403).json({
-        error: "Enhancement limit reached",
-        message: `Enhancement limit reached! You've used ${enhancementsUsed}/${userLimit} enhancements for your ${currentUser.plan} plan. Please upgrade to continue.`,
-        currentUsage: enhancementsUsed,
-        limit: userLimit,
-        plan: currentUser.plan
-      });
-    }
-
+  // Forgot Password endpoint
+  app.post("/api/forgot-password", async (req, res) => {
     try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists or not for security
+        return res.json({ message: "If an account with this email exists, you will receive a password reset link." });
+      }
+
+      // Generate reset token
+      const { randomBytes } = await import("crypto");
+      const resetToken = randomBytes(32).toString("hex");
+      const resetExpires = new Date(Date.now() + 3600000); // 1 hour from now
+
+      // Store reset token in database
+      await storage.storePasswordResetToken(user.id, resetToken, resetExpires);
+
+      // Send reset email
+      const nodemailer = await import("nodemailer");
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: Number(process.env.SMTP_PORT) === 465,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
+
+      const resetUrl = `${process.env.SITE_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || 'support@promptop.net',
+        to: email,
+        subject: 'Password Reset Request - PromptOps',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #10b981;">Password Reset Request</h2>
+            <p>Hello ${user.full_name || 'User'},</p>
+            <p>You requested a password reset for your PromptOps account. Click the link below to reset your password:</p>
+            <div style="margin: 30px 0;">
+              <a href="${resetUrl}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
+            </div>
+            <p>This link will expire in 1 hour.</p>
+            <p>If you didn't request this password reset, please ignore this email.</p>
+            <br>
+            <p>Best regards,<br>PromptOps Team</p>
+          </div>
+        `
+      });
+
+      res.json({ message: "If an account with this email exists, you will receive a password reset link." });
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  // Reset Password endpoint
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+
+      // Verify reset token
+      const resetData = await storage.getPasswordResetToken(token);
+      if (!resetData || resetData.expires < new Date()) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Update password and remove reset token
+      // Supabase Auth will handle password hashing automatically
+      await storage.updateUserPassword(resetData.userId, newPassword);
+      await storage.deletePasswordResetToken(token);
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // COMPLETELY REWRITTEN AI PROMPT ENHANCEMENT ENDPOINT
+  app.post("/api/enhance-prompt", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
       const { prompt } = req.body;
-      
+
       if (!prompt) {
         return res.status(400).json({ error: "Prompt is required" });
       }
 
-      // Enhancement prompt with scoring
-      const enhancementRequest = `You are a professional prompt engineer. Analyze and enhance the following prompt to make it more effective, clear, and results-oriented.
+      console.log('🚀 BRAND NEW ENHANCEMENT SYSTEM: Starting enhancement...');
 
-Original prompt: "${prompt}"
+      // Get user data for limit checking
+      const currentUser = await storage.getUser(user.id);
+      if (!currentUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
-Please provide:
-1. An enhanced version of the prompt that is more specific, clear, and likely to produce better results
-2. A quality score from 1-100 for the enhanced prompt based on:
-   - Clarity and specificity (25 points)
-   - Context and background information (25 points)
-   - Clear desired outcome/format (25 points)
-   - Appropriate constraints and guidelines (25 points)
+      // Simple limit checking
+      const enhancementLimits = { free: 5, pro: 150, team: 2000, enterprise: -1 };
+      const userLimit = enhancementLimits[currentUser.plan as keyof typeof enhancementLimits] ?? 5;
+      const enhancementsUsed = currentUser.enhancements_used || 0;
 
-Respond in this exact JSON format:
-{
-  "enhancedPrompt": "your enhanced prompt here",
-  "score": 85,
-  "improvements": ["improvement 1", "improvement 2", "improvement 3"]
-}`;
-
-      const response = await testPromptWithAI(enhancementRequest, "gemini-2.5-flash");
-      
-      try {
-        const parsedResponse = JSON.parse(response.response);
-        
-        // Update user's enhancement usage
-        try {
-          const currentUser = await storage.getUser(user.id);
-          const newUsage = (currentUser?.enhancements_used || 0) + 1;
-          await storage.updateUserEnhancementUsage(user.id, newUsage);
-          console.log(`✅ Enhancement usage updated: ${newUsage} enhancements used`);
-
-          // Update the user object for immediate response
-          user.enhancements_used = newUsage;
-        } catch (error) {
-          console.warn('❌ Failed to update enhancement usage:', error);
-        }
-        
-        res.json({
-          enhancedPrompt: parsedResponse.enhancedPrompt,
-          score: Math.min(Math.max(parsedResponse.score, 1), 100),
-          improvements: parsedResponse.improvements || []
-        });
-      } catch (parseError) {
-        // Update user's enhancement usage even for fallback
-        try {
-          const currentUser = await storage.getUser(user.id);
-          const newUsage = (currentUser?.enhancements_used || 0) + 1;
-          await storage.updateUserEnhancementUsage(user.id, newUsage);
-          console.log(`✅ Enhancement usage updated (fallback): ${newUsage} enhancements used`);
-
-          // Update the user object for immediate response
-          user.enhancements_used = newUsage;
-        } catch (error) {
-          console.warn('❌ Failed to update enhancement usage:', error);
-        }
-        
-        // Fallback if JSON parsing fails
-        res.json({
-          enhancedPrompt: response.response,
-          score: 75,
-          improvements: ["Enhanced with AI optimization"]
+      if (userLimit !== -1 && enhancementsUsed >= userLimit) {
+        return res.status(403).json({
+          error: "Enhancement limit reached",
+          message: `Enhancement limit reached! You've used ${enhancementsUsed}/${userLimit} enhancements.`
         });
       }
+
+      // Calculate original score
+      const originalScore = calculatePromptScore(prompt);
+      console.log('📊 Original prompt score:', originalScore);
+
+      // SIMPLE FALLBACK ENHANCEMENT FUNCTION
+      const createSimpleEnhancement = (originalPrompt: string): string => {
+        const enhancements = [
+          `**Enhanced Professional Prompt:**\n\n${originalPrompt}\n\n**Additional Requirements:**`,
+          `- Provide detailed, comprehensive responses`,
+          `- Include specific examples where relevant`,
+          `- Structure the output clearly with headings or bullet points`,
+          `- Ensure accuracy and cite sources when applicable`,
+          `- Consider multiple perspectives or approaches`,
+          `- Provide actionable insights or recommendations`
+        ];
+        return enhancements.join('\n');
+      };
+
+      let enhancedPrompt = "";
+      let enhancedScore = 75;
+      let improvements = ["Enhanced with AI optimization"];
+
+      // TRY GEMINI API
+      try {
+        if (process.env.GEMINI_API_KEY) {
+          console.log('🔑 Attempting Gemini API call...');
+
+          const { GoogleGenerativeAI } = await import("@google/generative-ai");
+          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+          const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+          const enhancementPrompt = `Transform this prompt into a professional, detailed version:
+
+"${prompt}"
+
+Make it 2-3x more detailed with:
+- Clear context and requirements
+- Specific output format
+- Relevant constraints
+- Professional structure
+
+Return only the enhanced prompt, no JSON.`;
+
+          const result = await model.generateContent(enhancementPrompt);
+          const responseText = result.response.text();
+
+          if (responseText && responseText.length > prompt.length) {
+            enhancedPrompt = responseText;
+            enhancedScore = Math.min(originalScore + 25, 90);
+            improvements = ["Enhanced with Gemini AI", "Improved structure and clarity", "Added professional requirements"];
+            console.log('✅ Gemini enhancement successful');
+          } else {
+            throw new Error("Gemini response too short");
+          }
+        } else {
+          throw new Error("No Gemini API key");
+        }
+      } catch (error: any) {
+        console.log('⚠️ Gemini failed, using fallback:', error.message);
+        enhancedPrompt = createSimpleEnhancement(prompt);
+        enhancedScore = Math.min(originalScore + 15, 75);
+        improvements = ["Enhanced with fallback system", "Improved structure", "Added professional guidelines"];
+      }
+
+      // Ensure enhanced score is always higher than original
+      enhancedScore = Math.max(enhancedScore, originalScore + 10);
+      enhancedScore = Math.min(enhancedScore, 95); // Cap at 95
+      const scoreImprovement = enhancedScore - originalScore;
+
+      console.log('📈 Enhancement complete:', { originalScore, enhancedScore, scoreImprovement });
+
+      // Update user's enhancement usage
+      try {
+        await storage.updateUser(user.id, {
+          enhancements_used: enhancementsUsed + 1
+        });
+        console.log(`✅ Enhancement usage updated: ${enhancementsUsed + 1} enhancements used`);
+      } catch (updateError) {
+        console.log('⚠️ Failed to update enhancement usage:', updateError);
+      }
+
+      // Return the enhanced prompt
+      res.json({
+        enhancedPrompt,
+        originalScore,
+        enhancedScore,
+        scoreImprovement,
+        model: "promptop-enhancer-v1",
+        improvements
+      });
     } catch (error: any) {
       console.error("Error enhancing prompt:", error);
       res.status(500).json({ 
@@ -1546,9 +1855,7 @@ Respond in this exact JSON format:
       const { id } = req.params;
 
       const { error } = await supabaseAdmin
-        .from('posts')
-        .update({ views_count: supabaseAdmin.raw('views_count + 1') })
-        .eq('id', id);
+        .rpc('increment_views', { post_id: id });
 
       if (error) {
         console.error('Error updating post views:', error);
@@ -1585,9 +1892,7 @@ Respond in this exact JSON format:
           .eq('user_id', user.id);
 
         await supabaseAdmin
-          .from('posts')
-          .update({ likes_count: supabaseAdmin.raw('likes_count - 1') })
-          .eq('id', id);
+          .rpc('decrement_likes', { post_id: id });
 
         res.json({ liked: false });
       } else {
@@ -1597,9 +1902,7 @@ Respond in this exact JSON format:
           .insert({ post_id: id, user_id: user.id });
 
         await supabaseAdmin
-          .from('posts')
-          .update({ likes_count: supabaseAdmin.raw('likes_count + 1') })
-          .eq('id', id);
+          .rpc('increment_likes', { post_id: id });
 
         res.json({ liked: true });
       }
@@ -1679,9 +1982,7 @@ Respond in this exact JSON format:
 
       // Update post comments count
       await supabaseAdmin
-        .from('posts')
-        .update({ comments_count: supabaseAdmin.raw('comments_count + 1') })
-        .eq('id', id);
+        .rpc('increment_comments', { post_id: id });
 
       const formattedComment = {
         id: comment.id,
@@ -1830,9 +2131,7 @@ Respond in this exact JSON format:
       const { id } = req.params;
 
       const { error } = await supabaseAdmin
-        .from('prompts')
-        .update({ views_count: supabaseAdmin.raw('views_count + 1') })
-        .eq('id', id);
+        .rpc('increment_prompt_views', { prompt_id: id });
 
       if (error) {
         console.error('Error updating prompt views:', error);
@@ -2178,6 +2477,25 @@ Respond in this exact JSON format:
       ];
 
       res.json(integrations);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Simple status endpoint
+  app.get("/api/status", async (req, res) => {
+    try {
+      res.json({
+        server: {
+          status: 'online',
+          uptime: Date.now() - parseInt(SERVER_START_TIME),
+          version: '1.0.0'
+        },
+        models: {
+          total: Object.keys(AI_MODELS).length,
+          enabled: Object.values(AI_MODELS).filter(m => m.enabled).length
+        }
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

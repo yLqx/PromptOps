@@ -52,7 +52,7 @@ export default function PricingPage() {
     },
     {
       name: "Pro",
-      price: "$15",
+      price: "$19",
       period: "/month",
       description: "For professionals and creators",
       badge: "Most Popular",
@@ -79,9 +79,9 @@ export default function PricingPage() {
       description: "For teams and organizations",
       badge: "Add Members",
       features: [
-        { name: "Unlimited prompt tests per month", included: true },
-        { name: "Unlimited AI enhancements", included: true },
-        { name: "All AI models", included: true },
+        { name: "7500 prompt tests per month", included: true },
+        { name: "2000 AI enhancements per month", included: true },
+        { name: "Pro + Team AI models", included: true },
         { name: "Unlimited prompt slots", included: true },
         { name: "Team collaboration", included: true },
         { name: "Custom support", included: true },
@@ -237,12 +237,12 @@ export default function PricingPage() {
             </div>
             
             <div className="flex items-center gap-3">
-              <Link href="/auth">
+              <Link href="/login">
                 <Button variant="outline" className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10">
                   Sign In
                 </Button>
               </Link>
-              <Link href="/auth">
+              <Link href="/register">
                 <Button className="bg-emerald-600 hover:bg-emerald-700">
                   Get Started
                 </Button>
@@ -599,15 +599,15 @@ export default function PricingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start space-x-3">
                 <Mail className="h-5 w-5 text-emerald-400" />
-                <span className="text-slate-400">hello@promptops.com</span>
+                <span className="text-slate-400">support@promptop.net</span>
               </div>
               <div className="flex items-center justify-center md:justify-start space-x-3">
                 <Phone className="h-5 w-5 text-emerald-400" />
-                <span className="text-slate-400">+1 (555) 123-4567</span>
+                <span className="text-slate-400">+33 775851544</span>
               </div>
               <div className="flex items-center justify-center md:justify-start space-x-3">
                 <MapPin className="h-5 w-5 text-emerald-400" />
-                <span className="text-slate-400">San Francisco, CA</span>
+                <span className="text-slate-400">PARIS, FR</span>
               </div>
             </div>
           </div>

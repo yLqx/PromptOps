@@ -363,20 +363,20 @@ export default function CareersPage() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-            {/* Company Info */}
+             {/* Company Info */}
             <div className="space-y-4">
               <Logo className="text-white" />
               <p className="text-slate-400 text-sm leading-relaxed">
-                MONZED builds innovative AI development tools including PromptOp. Join our team to create the future of AI workflows.
+                The ultimate AI prompt management platform. Streamline your AI workflows with 20+ models and intelligent optimization.
               </p>
               <div className="flex space-x-4">
-                <a href="https://github.com/monzed" className="text-slate-400 hover:text-emerald-400 transition-colors">
+                <a href="https://github.com/PromptOp" className="text-slate-400 hover:text-emerald-400 transition-colors">
                   <Github className="h-5 w-5" />
                 </a>
-                <a href="https://twitter.com/monzed" className="text-slate-400 hover:text-emerald-400 transition-colors">
+                <a href="https://www.x.com/promptopnet" className="text-slate-400 hover:text-emerald-400 transition-colors">
                   <Twitter className="h-5 w-5" />
                 </a>
-                <a href="https://linkedin.com/company/monzed" className="text-slate-400 hover:text-emerald-400 transition-colors">
+                <a href="https://www.linkedin.com/company/promptopnet/" className="text-slate-400 hover:text-emerald-400 transition-colors">
                   <Linkedin className="h-5 w-5" />
                 </a>
               </div>
@@ -423,15 +423,15 @@ export default function CareersPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start space-x-3">
                 <Mail className="h-5 w-5 text-emerald-400" />
-                <span className="text-slate-400">team@monzed.com</span>
+                <span className="text-slate-400">support@promptop.net</span>
               </div>
               <div className="flex items-center justify-center md:justify-start space-x-3">
                 <Phone className="h-5 w-5 text-emerald-400" />
-                <span className="text-slate-400">+1 (555) 123-4567</span>
+                <span className="text-slate-400">+33 775851544</span>
               </div>
               <div className="flex items-center justify-center md:justify-start space-x-3">
                 <MapPin className="h-5 w-5 text-emerald-400" />
-                <span className="text-slate-400">San Francisco, CA</span>
+                <span className="text-slate-400">PARIS, FR</span>
               </div>
             </div>
           </div>
@@ -440,17 +440,17 @@ export default function CareersPage() {
           <div className="border-t border-slate-700/50 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               <p className="text-slate-400 text-sm">
-                © 2025 MONZED. All rights reserved.
+                © 2025 PromptOp. All rights reserved.
               </p>
               <div className="flex items-center space-x-6">
-                <span className="text-slate-400 text-sm">Visit us at</span>
-                <a
-                  href="https://monzed.com"
-                  target="_blank"
+                <span className="text-slate-400 text-sm">Powered by</span>
+                <a 
+                  href="https://monzed.com" 
+                  target="_blank" 
                   rel="noopener noreferrer"
                   className="text-emerald-400 hover:text-emerald-300 transition-colors font-semibold"
                 >
-                  MONZED.com
+                  MONZED
                 </a>
               </div>
             </div>

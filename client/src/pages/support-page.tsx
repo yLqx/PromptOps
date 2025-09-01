@@ -186,7 +186,7 @@ export default function SupportPage() {
             <div className="text-center">
               <p className="text-slate-400 mb-4">Have an account? Sign in to create support tickets</p>
               <Button 
-                onClick={() => window.location.href = '/auth'}
+                onClick={() => window.location.href = '/login'}
                 className="bg-emerald-500 hover:bg-emerald-600"
               >
                 Sign In
@@ -367,7 +367,7 @@ export default function SupportPage() {
       <footer className="bg-slate-800 border-t border-slate-700 py-8 mt-16">
         <div className="container mx-auto px-4 text-center">
           <p className="text-slate-400">
-            © 2024 PromptOp. Powered by{" "}
+            © 2025 PromptOp. Powered by{" "}
             <a href="https://monzed.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">
               Monzed.com
             </a>

@@ -35,6 +35,7 @@ const qualityColors = {
 const tierColors = {
   free: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   pro: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  team: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   enterprise: "bg-emerald-600/20 text-emerald-300 border-emerald-600/30"
 };
 
@@ -45,10 +46,12 @@ export default function ModelSelector({ value, onValueChange, className }: Model
   const availableModels = getAvailableModelsForUser(userPlan);
   const freeModels = availableModels.filter(m => m.tier === 'free');
   const proModels = availableModels.filter(m => m.tier === 'pro');
+  const teamModels = availableModels.filter(m => m.tier === 'team');
   const enterpriseModels = availableModels.filter(m => m.tier === 'enterprise');
   
   // Get unavailable models for display with lock icon
   const unavailableProModels = AI_MODELS.filter(m => m.tier === 'pro' && !isModelAvailableForUser(m.id, userPlan));
+  const unavailableTeamModels = AI_MODELS.filter(m => m.tier === 'team' && !isModelAvailableForUser(m.id, userPlan));
   const unavailableEnterpriseModels = AI_MODELS.filter(m => m.tier === 'enterprise' && !isModelAvailableForUser(m.id, userPlan));
 
   const renderModelItem = (model: AIModel, isAvailable: boolean = true) => (
@@ -126,6 +129,26 @@ export default function ModelSelector({ value, onValueChange, className }: Model
           </>
         )}
 
+        {/* Team Models */}
+        {(teamModels.length > 0 || unavailableTeamModels.length > 0) && (
+          <>
+            <SelectSeparator />
+            <SelectGroup>
+              <SelectLabel className="flex items-center space-x-2 text-blue-400">
+                <Brain className="h-4 w-4" />
+                <span>Team Models</span>
+                {(userPlan === 'free' || userPlan === 'pro') && (
+                  <Badge variant="outline" className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                    Team Plan Required
+                  </Badge>
+                )}
+              </SelectLabel>
+              {teamModels.map(model => renderModelItem(model, true))}
+              {(userPlan === 'free' || userPlan === 'pro') && unavailableTeamModels.slice(0, 3).map(model => renderModelItem(model, false))}
+            </SelectGroup>
+          </>
+        )}
+
         {/* Enterprise Models */}
         {(enterpriseModels.length > 0 || unavailableEnterpriseModels.length > 0) && (
           <>
@@ -134,14 +157,14 @@ export default function ModelSelector({ value, onValueChange, className }: Model
               <SelectLabel className="flex items-center space-x-2 text-purple-400">
                 <Lock className="h-4 w-4" />
                 <span>Enterprise Models</span>
-                {userPlan !== 'team' && userPlan !== 'enterprise' && (
+                {userPlan !== 'enterprise' && (
                   <Badge variant="outline" className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
                     Enterprise Only
                   </Badge>
                 )}
               </SelectLabel>
               {enterpriseModels.map(model => renderModelItem(model, true))}
-              {(userPlan === 'free' || userPlan === 'pro') && unavailableEnterpriseModels.slice(0, 2).map(model => renderModelItem(model, false))}
+              {(userPlan === 'free' || userPlan === 'pro' || userPlan === 'team') && unavailableEnterpriseModels.slice(0, 2).map(model => renderModelItem(model, false))}
             </SelectGroup>
           </>
         )}

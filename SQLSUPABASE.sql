@@ -21,6 +21,11 @@ CREATE TABLE public.users (
   plan plan_type DEFAULT 'free' NOT NULL,
   prompts_used INTEGER DEFAULT 0 NOT NULL,
   enhancements_used INTEGER DEFAULT 0 NOT NULL,
+  api_calls_used INTEGER DEFAULT 0 NOT NULL,
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  subscription_status TEXT DEFAULT 'inactive',
+  subscription_current_period_end TIMESTAMP WITH TIME ZONE,
   bio TEXT,
   website TEXT,
   location TEXT,
@@ -427,5 +432,77 @@ CREATE TRIGGER update_teams_updated_at BEFORE UPDATE ON public.teams FOR EACH RO
 CREATE TRIGGER update_prompts_updated_at BEFORE UPDATE ON public.prompts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON public.posts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_comments_updated_at BEFORE UPDATE ON public.comments FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Add Stripe billing columns to users table
+ALTER TABLE public.users
+ADD COLUMN IF NOT EXISTS api_calls_used INTEGER DEFAULT 0 NOT NULL,
+ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT,
+ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT,
+ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'inactive',
+ADD COLUMN IF NOT EXISTS subscription_current_period_end TIMESTAMP WITH TIME ZONE;
+
+-- ================================
+-- PASSWORD RESET TOKENS TABLE
+-- ================================
+
+-- Password reset tokens table
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT UNIQUE NOT NULL,
+  expires TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for password reset tokens
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires ON password_reset_tokens(expires);
+
+-- ================================
+-- ADMIN AUTHENTICATION SYSTEM
+-- ================================
+
+-- Admin users table
+CREATE TABLE IF NOT EXISTS admin_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  full_name TEXT,
+  role TEXT DEFAULT 'admin' CHECK (role IN ('admin', 'super_admin')),
+  permissions JSONB DEFAULT '["users", "content", "analytics"]'::jsonb,
+  is_active BOOLEAN DEFAULT true,
+  last_login TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Admin sessions table
+CREATE TABLE IF NOT EXISTS admin_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id UUID REFERENCES admin_users(id) ON DELETE CASCADE,
+  session_token TEXT UNIQUE NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  ip_address INET,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Admin activity logs
+CREATE TABLE IF NOT EXISTS admin_activity_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  resource_type TEXT,
+  resource_id TEXT,
+  details JSONB,
+  ip_address INET,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for admin tables
+CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(session_token);
+CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_admin_activity_admin_id ON admin_activity_logs(admin_id);
+CREATE INDEX IF NOT EXISTS idx_admin_activity_created_at ON admin_activity_logs(created_at);
 
 -- Setup complete! Your Supabase database is ready for PromptOps.

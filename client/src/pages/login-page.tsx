@@ -55,12 +55,7 @@ export default function LoginPage() {
         <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50 shadow-2xl">
           <CardHeader className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-white" />
-                </div>
-                <Logo className="text-2xl font-bold text-white" />
-              </div>
+              <Logo className="text-2xl font-bold text-white" size="md" clickable={false} />
             </div>
             <CardTitle className="text-2xl font-bold text-white">
               Welcome Back
@@ -135,7 +130,14 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center space-y-3">
+              <p className="text-slate-400">
+                <Link href="/forgot-password">
+                  <span className="text-emerald-400 hover:text-emerald-300 cursor-pointer font-medium">
+                    Forgot your password?
+                  </span>
+                </Link>
+              </p>
               <p className="text-slate-400">
                 Don't have an account?{" "}
                 <Link href="/register">
@@ -146,13 +148,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="mt-4 text-center">
-              <Link href="/login">
-                <span className="text-sm text-slate-500 hover:text-slate-400 cursor-pointer">
-                  Forgot your password?
-                </span>
-              </Link>
-            </div>
+
           </CardContent>
         </Card>
       </div>

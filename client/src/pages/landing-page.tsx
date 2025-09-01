@@ -730,15 +730,15 @@ export default function LandingPage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-400" />
-                    <span className="text-slate-300 text-sm">Unlimited prompt tests</span>
+                    <span className="text-slate-300 text-sm">7500 prompt tests/month</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-400" />
-                    <span className="text-slate-300 text-sm">Unlimited AI enhancements</span>
+                    <span className="text-slate-300 text-sm">2000 AI enhancements/month</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-400" />
-                    <span className="text-slate-300 text-sm">All AI models</span>
+                    <span className="text-slate-300 text-sm">Pro + Team AI models</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-emerald-400" />

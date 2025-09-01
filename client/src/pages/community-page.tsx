@@ -34,7 +34,8 @@ import {
   Award,
   BookOpen,
   RefreshCw,
-  User
+  User,
+  ExternalLink
 } from "lucide-react";
 import { CreatePostDialog } from "@/components/community/create-post-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -1037,6 +1038,43 @@ export default function CommunityPage() {
                             ))}
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Join Community Discord */}
+                  <Card className="bg-gradient-to-br from-emerald-900/20 to-gray-900/20 border-emerald-500/30">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-emerald-400">
+                        <Users className="h-5 w-5" />
+                        Join Our Community
+                      </CardTitle>
+                      <CardDescription className="text-gray-300">
+                        Connect with fellow prompt creators and get real-time support
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="text-sm text-gray-300">
+                          <p>🚀 Share your latest prompts</p>
+                          <p>💡 Get instant feedback</p>
+                          <p>🤝 Collaborate with others</p>
+                          <p>📢 Stay updated on new features</p>
+                        </div>
+                        <Button
+                          asChild
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                        >
+                          <a
+                            href="https://discord.gg/dtDVzeUJEb"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Join Discord Server
+                          </a>
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>

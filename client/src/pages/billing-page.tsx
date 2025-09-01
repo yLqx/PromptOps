@@ -4,6 +4,7 @@ import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import Footer from "@/components/layout/footer";
 import PricingCards from "@/components/billing/pricing-cards";
+import SubscriptionManager from "@/components/billing/subscription-manager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -98,44 +99,8 @@ export default function BillingPage() {
             </Card>
           </div>
 
-          {/* Current Subscription Details */}
-          {user?.plan !== "free" && (
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>Subscription Details</CardTitle>
-                <CardDescription>
-                  Your current subscription information
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Plan</p>
-                    <p className="text-lg font-semibold">{planNames[user?.plan as keyof typeof planNames]}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Price</p>
-                    <p className="text-lg font-semibold">
-                      {user?.plan === "pro" ? "$19/month" : "$49/month"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Status</p>
-                    <Badge>Active</Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Billing Cycle</p>
-                    <p>Monthly</p>
-                  </div>
-                </div>
-                <div className="mt-6 flex space-x-4">
-                  <Button variant="outline">Update Payment Method</Button>
-                  <Button variant="outline">Download Invoice</Button>
-                  <Button variant="destructive">Cancel Subscription</Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Subscription Management */}
+          <SubscriptionManager />
 
           {/* Usage Warning */}
           {user?.plan === "free" && user?.prompts_used >= 12 && (

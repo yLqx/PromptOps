@@ -52,6 +52,8 @@ export interface IStorage {
   getSupportTicket(id: string): Promise<SupportTicket | undefined>;
   updateSupportTicket(id: string, updates: { status?: string; adminResponse?: string }): Promise<SupportTicket>;
   deleteSupportTicket(id: string): Promise<void>;
+  updateUserPassword(userId: string, newPassword: string): Promise<void>;
+  updateUserPlan(userId: string, plan: string): Promise<User>;
 }
 
 export class MockStorage implements IStorage {
@@ -118,13 +120,12 @@ export class MockStorage implements IStorage {
     return true;
   }
 
-  async updateUserPassword(id: string, newPassword: string): Promise<User> {
-    const userIndex = mockUsers.findIndex(user => user.id === id);
+  async updateUserPassword(userId: string, newPassword: string): Promise<void> {
+    const userIndex = mockUsers.findIndex(user => user.id === userId);
     if (userIndex === -1) throw new Error("User not found");
-    
-    // Simple demo hash
-    mockUsers[userIndex].password = `demo:${newPassword}`;
-    return mockUsers[userIndex];
+
+    // In mock storage, we don't actually store passwords
+    // This is just for demo purposes
   }
 
   async updateUserPlan(id: string, plan: "free" | "pro" | "team"): Promise<User> {

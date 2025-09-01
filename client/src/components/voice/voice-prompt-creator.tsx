@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import ModelSelector from "@/components/ui/model-selector";
 
 interface VoicePromptCreatorProps {
   onClose?: () => void;
@@ -49,6 +50,8 @@ export default function VoicePromptCreator({ onClose }: VoicePromptCreatorProps)
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState("");
+  const [generatedPrompt, setGeneratedPrompt] = useState("");
+  const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash");
   const [isPublic, setIsPublic] = useState(false);
   
   // Refs
@@ -171,6 +174,25 @@ export default function VoicePromptCreator({ onClose }: VoicePromptCreatorProps)
     }
   };
 
+  // Generate prompt from voice transcript mutation
+  const generatePromptMutation = useMutation({
+    mutationFn: async (data: { content: string; model: string }) => {
+      const res = await apiRequest("POST", "/api/generate-prompt-from-voice", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setGeneratedPrompt(data.prompt);
+      toast({ title: "Prompt generated successfully from voice!" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to generate prompt",
+        description: error.message,
+        variant: "destructive"
+      });
+    },
+  });
+
   // Save prompt mutation
   const savePromptMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -186,36 +208,53 @@ export default function VoicePromptCreator({ onClose }: VoicePromptCreatorProps)
       setCategory("");
       setTags("");
       setTranscript("");
+      setGeneratedPrompt("");
       clearRecording();
       if (onClose) onClose();
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Failed to save prompt", 
+      toast({
+        title: "Failed to save prompt",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive"
       });
     },
   });
+
+  const handleGeneratePrompt = () => {
+    if (!transcript.trim()) {
+      toast({
+        title: "No voice transcript",
+        description: "Please record some audio first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    generatePromptMutation.mutate({
+      content: transcript.trim(),
+      model: selectedModel
+    });
+  };
 
   const handleSave = () => {
     if (!title.trim()) {
       toast({ title: "Please enter a title", variant: "destructive" });
       return;
     }
-    if (!transcript.trim()) {
-      toast({ title: "Please record or type your prompt", variant: "destructive" });
+    if (!generatedPrompt.trim()) {
+      toast({ title: "Please generate a prompt from your voice recording first", variant: "destructive" });
       return;
     }
 
     const promptData = {
       title: title.trim(),
-      content: transcript.trim(),
+      content: generatedPrompt.trim(),
       description: description.trim(),
       category: category || "general",
       tags: tags.split(",").map(tag => tag.trim()).filter(Boolean),
-      isPublic,
-      createdViaVoice: true
+      isPublic: false, // Remove community sharing option
+      created_via_voice: true
     };
 
     savePromptMutation.mutate(promptData);
@@ -305,7 +344,7 @@ export default function VoicePromptCreator({ onClose }: VoicePromptCreatorProps)
 
         {/* Transcript Section */}
         <div className="space-y-2">
-          <Label htmlFor="transcript">Prompt Content</Label>
+          <Label htmlFor="transcript">Voice Transcript</Label>
           <Textarea
             id="transcript"
             placeholder="Your voice will be transcribed here, or you can type directly..."
@@ -321,8 +360,52 @@ export default function VoicePromptCreator({ onClose }: VoicePromptCreatorProps)
           )}
         </div>
 
+        {/* AI Model Selection */}
+        {transcript && (
+          <div className="space-y-2">
+            <Label>AI Model for Prompt Generation</Label>
+            <ModelSelector
+              value={selectedModel}
+              onValueChange={setSelectedModel}
+            />
+          </div>
+        )}
+
+        {/* Generate Prompt Button */}
+        {transcript && (
+          <div className="flex justify-center">
+            <Button
+              onClick={handleGeneratePrompt}
+              disabled={generatePromptMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Wand2 className="h-4 w-4 mr-2" />
+              {generatePromptMutation.isPending ? "Generating..." : "Generate Prompt from Voice"}
+            </Button>
+          </div>
+        )}
+
+        {/* Generated Prompt Display */}
+        {generatedPrompt && (
+          <div className="space-y-2">
+            <Label>Generated Prompt</Label>
+            <Textarea
+              value={generatedPrompt}
+              onChange={(e) => setGeneratedPrompt(e.target.value)}
+              rows={8}
+              className="min-h-[200px]"
+              placeholder="Generated prompt will appear here..."
+            />
+            <Badge variant="secondary" className="text-xs">
+              {generatedPrompt.split(' ').length} words
+            </Badge>
+          </div>
+        )}
+
         {/* Form Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {generatedPrompt && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
             <Input
@@ -369,38 +452,27 @@ export default function VoicePromptCreator({ onClose }: VoicePromptCreatorProps)
             value={tags}
             onChange={(e) => setTags(e.target.value)}
           />
-        </div>
+            </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="isPublic"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-              className="rounded"
-            />
-            <Label htmlFor="isPublic" className="text-sm">
-              Share with community
-            </Label>
-          </div>
-
-          <div className="flex gap-2">
-            {onClose && (
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-            )}
-            <Button 
-              onClick={handleSave}
-              disabled={savePromptMutation.isPending}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {savePromptMutation.isPending ? "Saving..." : "Save Prompt"}
-            </Button>
-          </div>
-        </div>
+            {/* Actions */}
+            <div className="flex items-center justify-end pt-4 border-t">
+              <div className="flex gap-2">
+                {onClose && (
+                  <Button variant="outline" onClick={onClose}>
+                    Cancel
+                  </Button>
+                )}
+                <Button
+                  onClick={handleSave}
+                  disabled={savePromptMutation.isPending}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {savePromptMutation.isPending ? "Saving..." : "Save Prompt"}
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Hidden audio element */}
         {audioUrl && (

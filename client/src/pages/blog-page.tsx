@@ -89,12 +89,12 @@ export default function BlogPage() {
             </div>
             
             <div className="flex items-center gap-3">
-              <Link href="/auth">
+              <Link href="/login">
                 <Button variant="outline" className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10">
                   Sign In
                 </Button>
               </Link>
-              <Link href="/auth">
+              <Link href="/register">
                 <Button className="bg-emerald-600 hover:bg-emerald-700">
                   Get Started
                 </Button>
@@ -250,7 +250,7 @@ export default function BlogPage() {
                 <Zap className="h-8 w-8 text-blue-400 mx-auto mb-3" />
                 <h3 className="text-lg font-semibold text-white mb-2">Get Started</h3>
                 <p className="text-slate-400 text-sm mb-4">Try PromptOp with our free plan</p>
-                <Link href="/auth">
+                <Link href="/login">
                   <Button variant="outline" className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10">
                     Start Free
                     <ArrowRight className="ml-2 h-4 w-4" />

@@ -72,6 +72,59 @@ const deepseek = process.env.DEEPSEEK_API_KEY ?
     baseURL: "https://api.deepseek.com/v1"
   }) : null;
 
+// Meta/LLaMA client (configurable provider)
+// Try different LLaMA providers based on API key format or environment variable
+const getLlamaClient = () => {
+  if (!process.env.META_API_KEY) return null;
+
+  console.log('🦙 Initializing LLaMA client with API key:', process.env.META_API_KEY?.substring(0, 8) + '...');
+
+  // Check if it's a Groq API key (starts with gsk_)
+  if (process.env.META_API_KEY.startsWith('gsk_')) {
+    console.log('🦙 Using Groq API for LLaMA models');
+    return new OpenAI({
+      apiKey: process.env.META_API_KEY,
+      baseURL: "https://api.groq.com/openai/v1"
+    });
+  }
+
+  // Check if it's a Together AI key (starts with specific pattern)
+  if (process.env.META_API_KEY.length > 40) {
+    console.log('🦙 Using Together AI for LLaMA models');
+    return new OpenAI({
+      apiKey: process.env.META_API_KEY,
+      baseURL: "https://api.together.xyz/v1"
+    });
+  }
+
+  // For API LLM (apillm.com) - UUID format keys
+  if (process.env.META_API_KEY.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+    console.log('🦙 Using API LLM (apillm.com) for LLaMA models');
+    // Try different possible endpoints for API LLM
+    const possibleEndpoints = [
+      "https://api.apillm.com/v1",
+      "https://apillm.com/api/v1",
+      "https://api.apillm.com",
+      "https://apillm.com/api"
+    ];
+
+    // For now, use the first one - we'll add fallback logic later if needed
+    return new OpenAI({
+      apiKey: process.env.META_API_KEY,
+      baseURL: possibleEndpoints[0]
+    });
+  }
+
+  // Default to Together AI for other keys
+  console.log('🦙 Using Together AI (default) for LLaMA models');
+  return new OpenAI({
+    apiKey: process.env.META_API_KEY,
+    baseURL: "https://api.together.xyz/v1"
+  });
+};
+
+const metaLlama = getLlamaClient();
+
 export interface AIResponse {
   response: string;
   model: string;
@@ -303,6 +356,14 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
   const startTime = Date.now();
   const enhancedPrompt = enhancePrompt(promptContent);
 
+  // FORCE CORRECT MODEL FOR GEMINI - FIX THE PERSISTENT BUG
+  if (preferredModel === "gemini-2.5-flash") {
+    console.log('🚨 DETECTED WRONG MODEL: gemini-2.5-flash -> FORCING gemini-1.5-flash');
+    preferredModel = "gemini-1.5-flash";
+  }
+
+  console.log(`🔍 Debug: preferredModel = ${preferredModel} (after fix)`);
+
   // Use preferred model if specified
   // Handle DeepSeek models (Chat V2, R1, Chat V3.1, Coder V3.0, and legacy V3 Pro)
   const deepseekModels = ["deepseek-chat-v2", "deepseek-r1", "deepseek-r1-pro", "deepseek-chat-v3.1", "deepseek-coder-v3.0", "deepseek-v3-pro"];
@@ -382,17 +443,34 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
   }
 
   // Try Anthropic Claude models if specified
+  // SECOND FIX ATTEMPT - Force correct model again
+  if (preferredModel === "gemini-2.5-flash") {
+    console.log('🚨 SECOND FIX: gemini-2.5-flash -> gemini-1.5-flash');
+    preferredModel = "gemini-1.5-flash";
+  }
   console.log('🔍 Debug: preferredModel =', preferredModel, ', anthropic client =', !!anthropic);
   const claudeModels = {
-    "claude-3.5-sonnet": "claude-3-5-sonnet-20241022",
-    "claude-3-opus": "claude-3-opus-20240229",
-    "claude-3-haiku": "claude-3-haiku-20240307",
-    "claude-3.5-haiku": "claude-3-5-haiku-20241022",
+    // Claude 4 models (current working IDs from Anthropic docs)
+    "claude-4-sonnet": "claude-sonnet-4-20250514",
+    "claude-4-opus": "claude-opus-4-20250514",
+    
+    // Claude 3.7 models (current working IDs)
+    "claude-3.7-sonnet": "claude-3-7-sonnet-20250219",
+    "claude-3-7-sonnet-latest": "claude-3-7-sonnet-20250219",
+    
+    // Claude 3.5 models (current working IDs)
+    "claude-3.5-sonnet": "claude-3-7-sonnet-20250219", // Map to working 3.7
+    "claude-3.5-haiku": "claude-3-5-haiku-20241022", // Now available!
     "claude-3.5-haiku-latest": "claude-3-5-haiku-20241022",
     "claude-3-5-haiku-20241022": "claude-3-5-haiku-20241022",
-    "claude-4-sonnet": "claude-3-5-sonnet-20241022",
-    "claude-4-opus": "claude-3-opus-20240229"
+    
+    // Claude 3 models (working)
+    "claude-3-opus": "claude-3-opus-20240229",
+    "claude-3-haiku": "claude-3-haiku-20240307"
   };
+  
+  console.log('🔍 Available Claude models:', Object.keys(claudeModels));
+  console.log('🔍 Looking for model:', preferredModel, 'in mapping:', !!claudeModels[preferredModel as keyof typeof claudeModels]);
   
   if (preferredModel && claudeModels[preferredModel as keyof typeof claudeModels] && anthropic) {
     try {
@@ -419,6 +497,21 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
       };
     } catch (anthropicError: any) {
       console.log("❌ Claude failed:", anthropicError.message || anthropicError);
+      console.log("❌ Full error details:", {
+        name: anthropicError.name,
+        message: anthropicError.message,
+        status: anthropicError.status,
+        error: anthropicError.error,
+        type: anthropicError.type,
+        requestedModel: preferredModel,
+        mappedModel: claudeModels[preferredModel as keyof typeof claudeModels]
+      });
+      
+      // Check if it's a specific model availability issue
+      if (anthropicError.message && anthropicError.message.includes('model') && anthropicError.message.includes('not found')) {
+        console.log("🚨 Model not found error - this suggests the model ID is incorrect or unavailable");
+      }
+      
       const sanitizedError = sanitizeErrorMessage(anthropicError.message || "API call failed", preferredModel);
       return {
         response: `API Error: ${preferredModel} failed to respond. Please contact support or check promptop.net/status for service updates.`,
@@ -465,6 +558,65 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
     } catch (openaiError: any) {
       console.log("❌ GPT-4o failed:", openaiError.message || openaiError);
       const sanitizedError = sanitizeErrorMessage(openaiError.message || "API call failed", "GPT-4o");
+      return {
+        response: `API Error: ${preferredModel} failed to respond. Please contact support or check promptop.net/status for service updates.`,
+        model: preferredModel,
+        responseTime: Date.now() - startTime,
+        success: false,
+        error: sanitizedError
+      };
+    }
+  }
+
+  // Try LLaMA models
+  const llamaModels = ["llama-3-8b", "llama-3-70b"];
+  if (preferredModel && llamaModels.includes(preferredModel) && metaLlama) {
+    try {
+      const modelDisplayName = preferredModel.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      console.log(`🦙 Using ${modelDisplayName} as requested`);
+
+      // Map model IDs to actual provider model names
+      const getModelName = (modelId: string) => {
+        // For API LLM (apillm.com)
+        if (process.env.META_API_KEY?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          const apiLlmMapping: { [key: string]: string } = {
+            "llama-3-8b": "llama-3-8b-instruct",
+            "llama-3-70b": "llama-3-70b-instruct"
+          };
+          return apiLlmMapping[modelId] || "llama-3-8b-instruct";
+        }
+
+        // For Together AI (default)
+        const togetherMapping: { [key: string]: string } = {
+          "llama-3-8b": "meta-llama/Llama-3-8b-chat-hf",
+          "llama-3-70b": "meta-llama/Llama-3-70b-chat-hf"
+        };
+        return togetherMapping[modelId] || "meta-llama/Llama-3-8b-chat-hf";
+      };
+
+      const modelName = getModelName(preferredModel);
+      console.log(`🦙 Using model: ${modelName}`);
+
+      const response = await metaLlama.chat.completions.create({
+        model: modelName,
+        messages: [{ role: "user", content: enhancedPrompt }],
+        max_tokens: 2000,
+        temperature: 0.7,
+      });
+
+      const responseTime = Date.now() - startTime;
+      const text = response.choices[0]?.message?.content || "No response generated";
+
+      console.log(`✅ ${modelDisplayName} response successful`);
+      return {
+        response: text,
+        model: preferredModel,
+        responseTime,
+        success: true,
+      };
+    } catch (llamaError: any) {
+      console.log("❌ LLaMA failed:", llamaError.message || llamaError);
+      const sanitizedError = sanitizeErrorMessage(llamaError.message || "API call failed", preferredModel);
       return {
         response: `API Error: ${preferredModel} failed to respond. Please contact support or check promptop.net/status for service updates.`,
         model: preferredModel,

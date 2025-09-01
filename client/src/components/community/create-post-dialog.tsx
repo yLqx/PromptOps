@@ -451,7 +451,7 @@ Add emojis to make your post more engaging! 🎉"
               <Checkbox
                 id="anonymous"
                 checked={isAnonymous}
-                onCheckedChange={setIsAnonymous}
+                onCheckedChange={(checked) => setIsAnonymous(checked === true)}
               />
               <Label htmlFor="anonymous" className="flex items-center gap-2">
                 {isAnonymous ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

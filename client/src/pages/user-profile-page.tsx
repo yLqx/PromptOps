@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
-import Footer from "@/components/layout/footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,16 +77,16 @@ export default function UserProfilePage() {
 
   const getPlanBadgeColor = (plan: string) => {
     switch (plan) {
-      case 'pro': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-      case 'team': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
-      case 'enterprise': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
-      default: return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
+      case 'pro': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+      case 'team': return 'bg-emerald-600/10 text-emerald-400 border-emerald-600/20';
+      case 'enterprise': return 'bg-emerald-700/10 text-emerald-400 border-emerald-700/20';
+      default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
     }
   };
 
   if (loadingProfile) {
     return (
-      <div className="min-h-screen bg-background flex">
+      <div className="min-h-screen bg-black flex">
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <Header />
@@ -98,7 +97,6 @@ export default function UserProfilePage() {
               </div>
             </div>
           </main>
-          <Footer />
         </div>
       </div>
     );
@@ -106,7 +104,7 @@ export default function UserProfilePage() {
 
   if (!userProfile) {
     return (
-      <div className="min-h-screen bg-background flex">
+      <div className="min-h-screen bg-black flex">
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <Header />
@@ -114,11 +112,10 @@ export default function UserProfilePage() {
             <div className="max-w-4xl mx-auto">
               <div className="text-center py-12">
                 <h2 className="text-2xl font-bold mb-2">User Not Found</h2>
-                <p className="text-muted-foreground">The user you're looking for doesn't exist.</p>
+                <p className="text-gray-400">The user you're looking for doesn't exist.</p>
               </div>
             </div>
           </main>
-          <Footer />
         </div>
       </div>
     );
@@ -131,7 +128,7 @@ export default function UserProfilePage() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-black flex">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
@@ -158,14 +155,14 @@ export default function UserProfilePage() {
                           {userProfile.plan.charAt(0).toUpperCase() + userProfile.plan.slice(1)}
                         </Badge>
                       </div>
-                      <p className="text-xl text-muted-foreground">@{userProfile.username}</p>
+                      <p className="text-xl text-gray-400">@{userProfile.username}</p>
                     </div>
 
                     {userProfile.bio && (
                       <p className="text-foreground">{userProfile.bio}</p>
                     )}
 
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-400">
                       {userProfile.location && (
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
@@ -176,7 +173,7 @@ export default function UserProfilePage() {
                         <div className="flex items-center gap-1">
                           <Globe className="h-4 w-4" />
                           <a href={userProfile.website} target="_blank" rel="noopener noreferrer" 
-                             className="text-blue-600 hover:underline">
+                             className="text-emerald-400 hover:underline">
                             {userProfile.website}
                           </a>
                         </div>
@@ -249,8 +246,8 @@ export default function UserProfilePage() {
                           </div>
                           
                           <div className="flex items-center gap-2 mt-2">
-                            <div className="w-3 h-3 rounded-full bg-blue-500" />
-                            <span className="text-sm text-muted-foreground capitalize">{prompt.category}</span>
+                            <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                            <span className="text-sm text-gray-400 capitalize">{prompt.category}</span>
                           </div>
                         </CardHeader>
                         
@@ -306,7 +303,6 @@ export default function UserProfilePage() {
             </Tabs>
           </div>
         </main>
-        <Footer />
       </div>
     </div>
   );

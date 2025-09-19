@@ -20,7 +20,7 @@ export interface IStorage {
   updateUserEnhancementUsage(id: string, enhancementsUsed: number): Promise<User>;
   getUserById(id: string): Promise<User | null>;
   verifyPassword(email: string, password: string): Promise<boolean>;
-  updateUserPassword(id: string, newPassword: string): Promise<User>;
+  updateUserPassword(id: string, newPassword: string): Promise<void>;
   updateUserPlan(id: string, plan: "free" | "pro" | "team"): Promise<User>;
   updateUserStripeInfo(id: string, data: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User>;
   getPrompts(userId: string): Promise<Prompt[]>;
@@ -47,13 +47,11 @@ export interface IStorage {
   }>;
   getAllUsers(): Promise<User[]>;
   getAllSupportTickets(): Promise<SupportTicket[]>;
-  createSupportTicket(userId: string, insertTicket: InsertSupportTicket): Promise<SupportTicket>;
+  createSupportTicket(insertTicket: InsertSupportTicket & { userId: string }): Promise<SupportTicket>;
   getSupportTickets(userId: string): Promise<SupportTicket[]>;
   getSupportTicket(id: string): Promise<SupportTicket | undefined>;
   updateSupportTicket(id: string, updates: { status?: string; adminResponse?: string }): Promise<SupportTicket>;
   deleteSupportTicket(id: string): Promise<void>;
-  updateUserPassword(userId: string, newPassword: string): Promise<void>;
-  updateUserPlan(userId: string, plan: string): Promise<User>;
 }
 
 export class MockStorage implements IStorage {
@@ -81,14 +79,18 @@ export class MockStorage implements IStorage {
     const user: User = {
       id: `user-${Date.now()}`,
       ...insertUser,
+      fullName: insertUser.fullName || null,
       plan: "free",
       promptsUsed: 0,
       enhancementsUsed: 0,
       stripeCustomerId: null,
       stripeSubscriptionId: null,
-      teamId: null,
-      isTeamOwner: false,
-      createdAt: new Date()
+      avatarUrl: null,
+      bio: null,
+      website: null,
+      location: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     mockUsers.push(user);
     return user;
@@ -138,8 +140,8 @@ export class MockStorage implements IStorage {
   async updateUserStripeInfo(id: string, data: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User> {
     const userIndex = mockUsers.findIndex(user => user.id === id);
     if (userIndex === -1) throw new Error("User not found");
-    if (data.stripeCustomerId) mockUsers[userIndex].stripeCustomerId = data.stripeCustomerId;
-    if (data.stripeSubscriptionId) mockUsers[userIndex].stripeSubscriptionId = data.stripeSubscriptionId;
+    if (data.stripeCustomerId !== undefined) mockUsers[userIndex].stripeCustomerId = data.stripeCustomerId;
+    if (data.stripeSubscriptionId !== undefined) mockUsers[userIndex].stripeSubscriptionId = data.stripeSubscriptionId;
     return mockUsers[userIndex];
   }
 
@@ -269,10 +271,10 @@ export class MockStorage implements IStorage {
     return mockSupportTickets;
   }
 
-  async createSupportTicket(userId: string, insertTicket: InsertSupportTicket): Promise<SupportTicket> {
+  async createSupportTicket(insertTicket: InsertSupportTicket & { userId: string }): Promise<SupportTicket> {
     const ticket: SupportTicket = {
       id: `ticket-${Date.now()}`,
-      userId: userId,
+      userId: insertTicket.userId,
       subject: insertTicket.subject,
       description: insertTicket.description,
       priority: insertTicket.priority,

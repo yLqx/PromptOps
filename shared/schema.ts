@@ -34,6 +34,8 @@ export const users = pgTable("users", {
   bio: text("bio"),
   website: text("website"),
   location: text("location"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

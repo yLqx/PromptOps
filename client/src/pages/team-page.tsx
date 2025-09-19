@@ -41,15 +41,15 @@ export default function TeamPage() {
   // Redirect if not team plan
   if (user?.plan !== "team" && user?.plan !== "enterprise") {
     return (
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-screen bg-black text-gray-100">
         <Header />
         <div className="flex h-screen pt-16">
           <Sidebar />
           <main className="flex-1 overflow-auto p-6">
             <div className="text-center py-20">
-              <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h1 className="text-2xl font-bold mb-2">Team Management</h1>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-gray-400 mb-6">
                 Team management is only available for Team and Enterprise plans.
               </p>
               <Button onClick={() => window.location.href = "/billing"}>
@@ -153,10 +153,10 @@ export default function TeamPage() {
   };
 
   const maxMembers = user?.plan === "enterprise" ? "Unlimited" : 10;
-  const currentMembers = teamMembers.length;
+  const currentMembers = (teamMembers as any[]).length;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-black text-gray-100">
       <Header />
       
       <div className="flex h-screen pt-16">
@@ -165,7 +165,7 @@ export default function TeamPage() {
         <main className="flex-1 overflow-auto p-6">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">Team Management</h1>
-            <p className="text-muted-foreground">Manage your team members and invitations</p>
+            <p className="text-gray-400">Manage your team members and invitations</p>
           </div>
 
           {/* Team Overview */}
@@ -173,11 +173,11 @@ export default function TeamPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Team Members</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <Users className="h-4 w-4 text-gray-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{currentMembers} / {maxMembers}</div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-gray-400 mt-2">
                   Active team members
                 </p>
               </CardContent>
@@ -186,11 +186,11 @@ export default function TeamPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Pending Invitations</CardTitle>
-                <Mail className="h-4 w-4 text-muted-foreground" />
+                <Mail className="h-4 w-4 text-gray-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{pendingInvitations.length}</div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <div className="text-2xl font-bold">{(pendingInvitations as any[]).length}</div>
+                <p className="text-xs text-gray-400 mt-2">
                   Awaiting response
                 </p>
               </CardContent>
@@ -199,11 +199,11 @@ export default function TeamPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Plan</CardTitle>
-                <Crown className="h-4 w-4 text-muted-foreground" />
+                <Crown className="h-4 w-4 text-gray-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold capitalize">{user?.plan}</div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-gray-400 mt-2">
                   Current subscription
                 </p>
               </CardContent>
@@ -253,14 +253,14 @@ export default function TeamPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {teamMembers.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+              {(teamMembers as any[]).length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
                   <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No team members yet. Invite someone to get started!</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {teamMembers.map((member: any) => (
+                  {(teamMembers as any[]).map((member: any) => (
                     <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center">
@@ -270,7 +270,7 @@ export default function TeamPage() {
                         </div>
                         <div>
                           <p className="font-medium">{member.username || member.email}</p>
-                          <p className="text-sm text-muted-foreground">{member.email}</p>
+                          <p className="text-sm text-gray-400">{member.email}</p>
                         </div>
                         {member.isTeamOwner && (
                           <Badge variant="secondary">
@@ -298,17 +298,17 @@ export default function TeamPage() {
           </Card>
 
           {/* Pending Invitations */}
-          {pendingInvitations.length > 0 && (
+          {(pendingInvitations as any[]).length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Pending Invitations ({pendingInvitations.length})</CardTitle>
+                <CardTitle>Pending Invitations ({(pendingInvitations as any[]).length})</CardTitle>
                 <CardDescription>
                   Invitations waiting for response
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {pendingInvitations.map((invitation: any) => (
+                  {(pendingInvitations as any[]).map((invitation: any) => (
                     <div key={invitation.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900 rounded-full flex items-center justify-center">
@@ -316,7 +316,7 @@ export default function TeamPage() {
                         </div>
                         <div>
                           <p className="font-medium">{invitation.email}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-gray-400">
                             Invited {new Date(invitation.createdAt).toLocaleDateString()}
                           </p>
                         </div>

@@ -11,6 +11,17 @@ export default function QuickTest() {
   const [prompt, setPrompt] = useState("");
   const { toast } = useToast();
 
+  // Simple text formatter for AI responses
+  const formatText = (text: string) => {
+    if (!text) return text;
+
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-emerald-300">$1</em>')
+      .replace(/`([^`]+)`/g, '<code class="bg-slate-700 text-emerald-300 px-2 py-1 rounded text-sm font-mono">$1</code>')
+      .replace(/__(.*?)__/g, '<u class="underline text-blue-300">$1</u>');
+  };
+
   const testPromptMutation = useMutation({
     mutationFn: async (promptContent: string) => {
       const res = await apiRequest("POST", "/api/test-prompt", { promptContent });
@@ -27,7 +38,7 @@ export default function QuickTest() {
         : (data?.error ? `AI Error: ${data.error}` : "No response generated. Check your AI API keys in the server .env.");
 
       if (responseEl) {
-        responseEl.innerHTML = `<p class="text-foreground">${safeResponse}</p>`;
+        responseEl.innerHTML = `<div class="text-foreground whitespace-pre-wrap leading-relaxed">${formatText(safeResponse)}</div>`;
       }
       if (modelEl) {
         modelEl.textContent = data?.model || 'unknown';
@@ -36,9 +47,9 @@ export default function QuickTest() {
         timeEl.textContent = `${data?.responseTime ?? 0}ms`;
       }
 
-      toast({ 
-        title: "Prompt tested successfully", 
-        description: `Response time: ${data.responseTime}ms` 
+      toast({
+        title: "Prompt tested successfully",
+        description: `Response time: ${data.responseTime}ms`
       });
     },
     onError: (error) => {
@@ -77,7 +88,7 @@ export default function QuickTest() {
           />
         </div>
         <div className="flex space-x-3">
-          <Button 
+          <Button
             className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
             onClick={handleTest}
             disabled={testPromptMutation.isPending}

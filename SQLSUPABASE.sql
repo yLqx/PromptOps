@@ -442,6 +442,39 @@ ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'inactive',
 ADD COLUMN IF NOT EXISTS subscription_current_period_end TIMESTAMP WITH TIME ZONE;
 
 -- ================================
+-- SUBSCRIPTION LIMITS TABLE
+-- ================================
+-- This table defines the limits for each subscription tier
+CREATE TABLE IF NOT EXISTS public.subscription_limits (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tier plan_type NOT NULL UNIQUE,
+  prompts_per_month INTEGER NOT NULL,
+  ai_enhancements_per_month INTEGER NOT NULL,
+  prompt_slots INTEGER NOT NULL, -- -1 means unlimited
+  api_calls_per_month INTEGER DEFAULT -1, -- -1 means unlimited
+  max_team_members INTEGER DEFAULT 1,
+  priority_support BOOLEAN DEFAULT false,
+  custom_integrations BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- Insert default subscription limits
+INSERT INTO public.subscription_limits (tier, prompts_per_month, ai_enhancements_per_month, prompt_slots, api_calls_per_month, max_team_members, priority_support, custom_integrations) VALUES
+('free', 15, 5, 25, 50, 1, false, false),
+('pro', 1000, 150, 500, 2000, 1, true, false),
+('team', 7500, 2000, -1, -1, 10, true, true)
+ON CONFLICT (tier) DO UPDATE SET
+  prompts_per_month = EXCLUDED.prompts_per_month,
+  ai_enhancements_per_month = EXCLUDED.ai_enhancements_per_month,
+  prompt_slots = EXCLUDED.prompt_slots,
+  api_calls_per_month = EXCLUDED.api_calls_per_month,
+  max_team_members = EXCLUDED.max_team_members,
+  priority_support = EXCLUDED.priority_support,
+  custom_integrations = EXCLUDED.custom_integrations,
+  updated_at = NOW();
+
+-- ================================
 -- PASSWORD RESET TOKENS TABLE
 -- ================================
 

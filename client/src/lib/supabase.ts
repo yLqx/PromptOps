@@ -25,44 +25,25 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Auth helper functions
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    // Use server API to get user data (this handles authentication properly)
+    const response = await fetch('/api/user', {
+      method: 'GET',
+      credentials: 'include', // Include session cookies
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
 
-    if (error || !user) {
+    if (!response.ok) {
+      console.log('❌ Server user fetch failed:', response.status);
       return null;
     }
 
-    // Try to get user profile from public.users table first
-    const { data: profile, error: profileError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (profile && !profileError) {
-      return profile;
-    }
-
-    // If no profile in database, create a simple user object from auth data
-    const simpleUser: User = {
-      id: user.id,
-      email: user.email || '',
-      username: user.email?.split('@')[0] || 'user',
-      full_name: user.user_metadata?.full_name || '',
-      avatar_url: user.user_metadata?.avatar_url || undefined,
-      plan: 'free',
-      prompts_used: 0,
-      enhancements_used: 0,
-      api_calls_used: 0,
-      bio: undefined,
-      website: undefined,
-      location: undefined,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    return simpleUser;
+    const userData = await response.json();
+    console.log('✅ Server user data:', userData.email, 'Plan:', userData.plan);
+    return userData;
   } catch (error) {
-    console.error('Error getting current user:', error);
+    console.error('Error getting current user from server:', error);
     return null;
   }
 };

@@ -35,30 +35,20 @@ export function useUserUsage() {
 
 
 
-  // HARDCODED CORRECT VALUES - Override API response completely
-  const correctLimits = {
-    free: { prompts: 15, enhancements: 5, slots: 25 },
-    pro: { prompts: 1000, enhancements: 150, slots: 500 },
-    team: { prompts: 7500, enhancements: 2000, slots: -1 },
-    enterprise: { prompts: -1, enhancements: -1, slots: -1 }
-  };
+  // USE SUPABASE VALUES ONLY - No hardcoded limits
+  const promptsLimit = promptsPerMonth === -1 ? "unlimited" : promptsPerMonth;
+  const enhancementsLimit = aiEnhancementsPerMonth === -1 ? "unlimited" : aiEnhancementsPerMonth;
+  const slotsLimit = promptsSlots === -1 ? "unlimited" : promptsSlots;
 
-  const hardcodedLimits = correctLimits[plan as keyof typeof correctLimits] || correctLimits.free;
-
-  // FORCE CORRECT VALUES - Ignore API response for limits
-  const promptsLimit = hardcodedLimits.prompts === -1 ? "unlimited" : hardcodedLimits.prompts;
-  const enhancementsLimit = hardcodedLimits.enhancements === -1 ? "unlimited" : hardcodedLimits.enhancements;
-  const slotsLimit = hardcodedLimits.slots === -1 ? "unlimited" : hardcodedLimits.slots;
-
-  console.log('🔧 HARDCODED LIMITS APPLIED:', {
+  console.log('✅ SUPABASE LIMITS USED:', {
     plan,
-    applied_limits: { promptsLimit, enhancementsLimit, slotsLimit },
-    api_returned: { promptsPerMonth, aiEnhancementsPerMonth, promptsSlots }
+    supabase_limits: { promptsLimit, enhancementsLimit, slotsLimit },
+    raw_api_response: { promptsPerMonth, aiEnhancementsPerMonth, promptsSlots }
   });
 
   // Helper function to calculate percentages
-  const calculatePercentage = (used: number, limit: string | number): number => {
-    if (limit === "unlimited" || typeof limit !== "number" || limit <= 0) return 0;
+  const calculatePercentage = (used: number, limit: string | number | undefined): number => {
+    if (!limit || limit === "unlimited" || typeof limit !== "number" || limit <= 0) return 0;
     return Math.min(100, (used / limit) * 100);
   };
 
@@ -68,8 +58,8 @@ export function useUserUsage() {
   const slotsPercentage = calculatePercentage(promptsSaved, slotsLimit);
 
   // Helper function to check capabilities
-  const canUse = (used: number, limit: string | number): boolean => {
-    if (limit === "unlimited") return true;
+  const canUse = (used: number, limit: string | number | undefined): boolean => {
+    if (!limit || limit === "unlimited") return true;
     if (typeof limit !== "number" || limit <= 0) return false;
     return used < limit;
   };

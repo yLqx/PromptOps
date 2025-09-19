@@ -91,8 +91,8 @@ export default function AdminPage() {
   // Show loading while auth is loading
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-foreground text-xl">Loading admin panel...</div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-gray-100 text-xl">Loading admin panel...</div>
       </div>
     );
   }
@@ -100,11 +100,11 @@ export default function AdminPage() {
   // Show access denied if not admin
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Card>
           <CardContent className="p-8 text-center">
-            <h1 className="text-2xl font-bold text-foreground mb-4">Not Logged In</h1>
-            <p className="text-muted-foreground">Please log in to access the admin panel.</p>
+            <h1 className="text-2xl font-bold text-gray-100 mb-4">Not Logged In</h1>
+            <p className="text-gray-400">Please log in to access the admin panel.</p>
           </CardContent>
         </Card>
       </div>
@@ -113,12 +113,12 @@ export default function AdminPage() {
 
   if (user.email !== "admin@promptops.com" && user.email !== "mourad@admin.com") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Card>
           <CardContent className="p-8 text-center">
-            <h1 className="text-2xl font-bold text-foreground mb-4">Access Denied</h1>
-            <p className="text-muted-foreground">You don't have permission to access the admin panel.</p>
-            <p className="text-muted-foreground text-sm mt-2">Current user: {user.email}</p>
+            <h1 className="text-2xl font-bold text-gray-100 mb-4">Access Denied</h1>
+            <p className="text-gray-400">You don't have permission to access the admin panel.</p>
+            <p className="text-gray-400 text-sm mt-2">Current user: {user.email}</p>
           </CardContent>
         </Card>
       </div>
@@ -135,7 +135,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black">
       <Header />
       
       <div className="pt-16">
@@ -145,25 +145,25 @@ export default function AdminPage() {
               <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg flex items-center justify-center">
                 <Crown className="h-5 w-5 text-white" />
               </div>
-              <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-100">Admin Dashboard</h1>
             </div>
-            <p className="text-muted-foreground">Welcome {user.username}! Managing PromptOp platform.</p>
+            <p className="text-gray-400">Welcome {user.username}! Managing PromptOp platform.</p>
           </div>
 
           {/* Admin Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-foreground flex items-center">
+                <CardTitle className="text-gray-100 flex items-center">
                   <Users className="mr-2 h-4 w-4 text-emerald-400" />
                   Total Users
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {statsLoading ? "..." : adminStats?.totalUsers || 0}
+                <div className="text-2xl font-bold text-gray-100">
+                  {statsLoading ? "..." : (adminStats as any)?.totalUsers || 0}
                 </div>
-                <p className="text-muted-foreground text-sm">Registered users</p>
+                <p className="text-gray-400 text-sm">Registered users</p>
               </CardContent>
             </Card>
 
@@ -175,10 +175,10 @@ export default function AdminPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {statsLoading ? "..." : adminStats?.activeSubscriptions || 0}
+                <div className="text-2xl font-bold text-gray-100">
+                  {statsLoading ? "..." : (adminStats as any)?.activeSubscriptions || 0}
                 </div>
-                <p className="text-muted-foreground text-sm">Paid subscribers</p>
+                <p className="text-gray-400 text-sm">Paid subscribers</p>
               </CardContent>
             </Card>
 
@@ -190,10 +190,10 @@ export default function AdminPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  ${statsLoading ? "..." : adminStats?.monthlyRevenue || 0}
+                <div className="text-2xl font-bold text-gray-100">
+                  ${statsLoading ? "..." : (adminStats as any)?.monthlyRevenue || 0}
                 </div>
-                <p className="text-muted-foreground text-sm">Estimated monthly</p>
+                <p className="text-gray-400 text-sm">Estimated monthly</p>
               </CardContent>
             </Card>
 
@@ -205,10 +205,10 @@ export default function AdminPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {statsLoading ? "..." : adminStats?.openTickets || 0}
+                <div className="text-2xl font-bold text-gray-100">
+                  {statsLoading ? "..." : (adminStats as any)?.openTickets || 0}
                 </div>
-                <p className="text-muted-foreground text-sm">Pending support</p>
+                <p className="text-gray-400 text-sm">Pending support</p>
               </CardContent>
             </Card>
           </div>
@@ -235,20 +235,20 @@ export default function AdminPage() {
                   <CardContent>
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total Users:</span>
-                        <span className="font-semibold text-foreground">{adminStats?.totalUsers || 0}</span>
+                        <span className="text-gray-400">Total Users:</span>
+                        <span className="font-semibold text-gray-100">{(adminStats as any)?.totalUsers || 0}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Active Subscriptions:</span>
-                        <span className="font-semibold text-foreground">{adminStats?.activeSubscriptions || 0}</span>
+                        <span className="text-gray-400">Active Subscriptions:</span>
+                        <span className="font-semibold text-gray-100">{(adminStats as any)?.activeSubscriptions || 0}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total Tickets:</span>
-                        <span className="font-semibold text-foreground">{adminStats?.totalTickets || 0}</span>
+                        <span className="text-gray-400">Total Tickets:</span>
+                        <span className="font-semibold text-gray-100">{(adminStats as any)?.totalTickets || 0}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Monthly Revenue:</span>
-                        <span className="font-semibold text-emerald-400">${adminStats?.monthlyRevenue || 0}</span>
+                        <span className="text-gray-400">Monthly Revenue:</span>
+                        <span className="font-semibold text-emerald-400">${(adminStats as any)?.monthlyRevenue || 0}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -265,15 +265,15 @@ export default function AdminPage() {
                     <div className="space-y-3">
                       <div className="flex items-center space-x-3">
                         <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-                        <span className="text-sm text-muted-foreground">System running smoothly</span>
+                        <span className="text-sm text-gray-400">System running smoothly</span>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                        <span className="text-sm text-muted-foreground">Users active on platform</span>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                        <span className="text-sm text-gray-400">Users active on platform</span>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                        <span className="text-sm text-muted-foreground">Support tickets pending</span>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                        <span className="text-sm text-gray-400">Support tickets pending</span>
                       </div>
                     </div>
                   </CardContent>
@@ -296,7 +296,7 @@ export default function AdminPage() {
                 <CardContent>
                   {usersLoading ? (
                     <div className="text-center py-8">
-                      <div className="text-muted-foreground">Loading users...</div>
+                      <div className="text-gray-400">Loading users...</div>
                     </div>
                   ) : (
                     <Table>
@@ -310,7 +310,7 @@ export default function AdminPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {users.map((user: any) => (
+                        {(users as any[]).map((user: any) => (
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">{user.username}</TableCell>
                             <TableCell>{user.email}</TableCell>
@@ -345,13 +345,13 @@ export default function AdminPage() {
                 <CardContent>
                   {ticketsLoading ? (
                     <div className="text-center py-8">
-                      <div className="text-muted-foreground">Loading tickets...</div>
+                      <div className="text-gray-400">Loading tickets...</div>
                     </div>
-                  ) : tickets.length === 0 ? (
+                  ) : (tickets as any[]).length === 0 ? (
                     <div className="text-center py-8">
-                      <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-foreground font-medium mb-2">No tickets yet</h3>
-                      <p className="text-muted-foreground">All support tickets will appear here.</p>
+                      <p className="text-gray-400">All support tickets will appear here.</p>
                     </div>
                   ) : (
                     <Table>
@@ -366,7 +366,7 @@ export default function AdminPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {tickets.map((ticket: any) => (
+                        {(tickets as any[]).map((ticket: any) => (
                           <TableRow key={ticket.id}>
                             <TableCell className="font-medium">{ticket.subject}</TableCell>
                             <TableCell>{ticket.userEmail}</TableCell>
@@ -414,7 +414,7 @@ export default function AdminPage() {
                                       </div>
                                       <div className="grid gap-2">
                                         <Label>Description</Label>
-                                        <p className="text-sm text-muted-foreground">{selectedTicket?.description}</p>
+                                        <p className="text-sm text-gray-400">{selectedTicket?.description}</p>
                                       </div>
                                       <div className="grid gap-2">
                                         <Label htmlFor="status">Status</Label>
@@ -483,21 +483,21 @@ export default function AdminPage() {
                       <h4 className="text-foreground font-medium">User Distribution</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Free Plan:</span>
+                          <span className="text-gray-400">Free Plan:</span>
                           <span className="text-foreground font-medium">
-                            {users.filter((u: any) => u.plan === "free").length}
+                            {(users as any[]).filter((u: any) => u.plan === "free").length}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Pro Plan:</span>
+                          <span className="text-gray-400">Pro Plan:</span>
                           <span className="text-foreground font-medium">
-                            {users.filter((u: any) => u.plan === "pro").length}
+                            {(users as any[]).filter((u: any) => u.plan === "pro").length}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Team Plan:</span>
+                          <span className="text-gray-400">Team Plan:</span>
                           <span className="text-foreground font-medium">
-                            {users.filter((u: any) => u.plan === "team").length}
+                            {(users as any[]).filter((u: any) => u.plan === "team").length}
                           </span>
                         </div>
                       </div>
@@ -506,20 +506,20 @@ export default function AdminPage() {
                       <h4 className="text-foreground font-medium">Support Metrics</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Open Tickets:</span>
+                          <span className="text-gray-400">Open Tickets:</span>
                           <span className="text-foreground font-medium">
-                            {tickets.filter((t: any) => t.status === "open").length}
+                            {(tickets as any[]).filter((t: any) => t.status === "open").length}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Resolved Tickets:</span>
+                          <span className="text-gray-400">Resolved Tickets:</span>
                           <span className="text-foreground font-medium">
-                            {tickets.filter((t: any) => t.status === "resolved").length}
+                            {(tickets as any[]).filter((t: any) => t.status === "resolved").length}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Total Tickets:</span>
-                          <span className="text-foreground font-medium">{tickets.length}</span>
+                          <span className="text-gray-400">Total Tickets:</span>
+                          <span className="text-gray-100 font-medium">{(tickets as any[]).length}</span>
                         </div>
                       </div>
                     </div>

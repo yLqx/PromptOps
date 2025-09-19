@@ -28,6 +28,17 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser()); // Add cookie parser for admin authentication
 app.use(supabaseAuth);
 
+// Health check endpoint
+app.get('/api/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: process.env.npm_package_version || '1.0.0'
+  });
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

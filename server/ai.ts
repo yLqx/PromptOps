@@ -125,6 +125,34 @@ const getLlamaClient = () => {
 
 const metaLlama = getLlamaClient();
 
+// Mistral AI client
+const mistral = process.env.MISTRAL_API_KEY ?
+  new OpenAI({
+    apiKey: process.env.MISTRAL_API_KEY,
+    baseURL: "https://api.mistral.ai/v1"
+  }) : null;
+
+// Cohere client (using OpenAI-compatible API)
+const cohere = process.env.COHERE_API_KEY ?
+  new OpenAI({
+    apiKey: process.env.COHERE_API_KEY,
+    baseURL: "https://api.cohere.ai/v1"
+  }) : null;
+
+// Perplexity client
+const perplexity = process.env.PERPLEXITY_API_KEY ?
+  new OpenAI({
+    apiKey: process.env.PERPLEXITY_API_KEY,
+    baseURL: "https://api.perplexity.ai"
+  }) : null;
+
+// Hugging Face client (for open source models)
+const huggingface = process.env.HUGGINGFACE_API_KEY ?
+  new OpenAI({
+    apiKey: process.env.HUGGINGFACE_API_KEY,
+    baseURL: "https://api-inference.huggingface.co/v1"
+  }) : null;
+
 export interface AIResponse {
   response: string;
   model: string;
@@ -365,17 +393,33 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
   console.log(`🔍 Debug: preferredModel = ${preferredModel} (after fix)`);
 
   // Use preferred model if specified
-  // Handle DeepSeek models (Chat V2, R1, Chat V3.1, Coder V3.0, and legacy V3 Pro)
-  const deepseekModels = ["deepseek-chat-v2", "deepseek-r1", "deepseek-r1-pro", "deepseek-chat-v3.1", "deepseek-coder-v3.0", "deepseek-v3-pro"];
+  // Handle DeepSeek models (Chat V2, V3, Coder models)
+  const deepseekModels = ["deepseek-chat-v2", "deepseek-v3", "deepseek-r1-pro", "deepseek-coder", "deepseek-coder-v3", "deepseek-v2.5", "deepseek-v3-pro"];
+
+  // Handle Mistral models
+  const mistralModels = ["mistral-7b", "mistral-small", "mistral-medium", "mistral-large", "mistral-large-2", "mixtral-8x7b", "mixtral-8x22b", "codestral"];
+
+  // Handle Cohere models
+  const cohereModels = ["command-light", "command-r", "command-r-plus", "command-nightly"];
+
+  // Handle Perplexity models
+  const perplexityModels = ["perplexity-sonar-large"];
+
+  // Handle Hugging Face models
+  const huggingfaceModels = ["phi-3-mini", "phi-3.5-mini", "phi-3-medium", "phi-3-large", "qwen-2.5-3b", "qwen-2.5-7b", "qwen-2.5-32b", "qwen-2.5-72b", "qwen-coder-32b", "yi-large"];
+
+  // Handle LLaMA models
+  const llamaModels = ["llama-3.2-1b", "llama-3.2-3b", "llama-3.1-8b", "llama-3.2-90b", "llama-3.1-70b", "llama-3.1-405b", "llama-3.1-405b-instruct"];
   if (preferredModel && deepseekModels.includes(preferredModel) && deepseek) {
     try {
       // Map model IDs to display names
       const modelDisplayNames: { [key: string]: string } = {
         "deepseek-chat-v2": "DeepSeek Chat V2",
-        "deepseek-r1": "DeepSeek R1",
+        "deepseek-v3": "DeepSeek V3",
         "deepseek-r1-pro": "DeepSeek R1 Pro",
-        "deepseek-chat-v3.1": "DeepSeek Chat V3.1",
-        "deepseek-coder-v3.0": "DeepSeek Coder V3.0",
+        "deepseek-coder": "DeepSeek Coder",
+        "deepseek-coder-v3": "DeepSeek Coder V3",
+        "deepseek-v2.5": "DeepSeek V2.5",
         "deepseek-v3-pro": "DeepSeek V3 Pro"
       };
       
@@ -383,7 +427,16 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
       console.log(`🔥 Using ${modelDisplayName} as requested`);
       
       // Use appropriate DeepSeek model endpoint
-      const deepseekModel = preferredModel === "deepseek-coder-v3.0" ? "deepseek-coder" : "deepseek-chat";
+      const deepseekModelMapping: { [key: string]: string } = {
+        "deepseek-chat-v2": "deepseek-chat",
+        "deepseek-v3": "deepseek-chat",
+        "deepseek-r1-pro": "deepseek-chat",
+        "deepseek-coder": "deepseek-coder",
+        "deepseek-coder-v3": "deepseek-coder",
+        "deepseek-v2.5": "deepseek-chat",
+        "deepseek-v3-pro": "deepseek-chat"
+      };
+      const deepseekModel = deepseekModelMapping[preferredModel] || "deepseek-chat";
       
       const response = await deepseek.chat.completions.create({
         model: deepseekModel,
@@ -408,6 +461,181 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
     } catch (deepseekError: any) {
       console.log("❌ DeepSeek failed:", deepseekError.message || deepseekError);
       const sanitizedError = sanitizeErrorMessage(deepseekError.message || "API call failed", preferredModel);
+      return {
+        response: `API Error: ${preferredModel} failed to respond. Please contact support or check promptop.net/status for service updates.`,
+        model: preferredModel,
+        responseTime: Date.now() - startTime,
+        success: false,
+        error: sanitizedError
+      };
+    }
+  }
+
+  // Handle Mistral models
+  if (preferredModel && mistralModels.includes(preferredModel) && mistral) {
+    try {
+      const modelMapping: { [key: string]: string } = {
+        "mistral-7b": "mistral-tiny",
+        "mistral-small": "mistral-small-latest",
+        "mistral-medium": "mistral-medium-latest",
+        "mistral-large": "mistral-large-latest",
+        "mistral-large-2": "mistral-large-2407",
+        "mixtral-8x7b": "mistral-small-latest",
+        "mixtral-8x22b": "mistral-medium-latest",
+        "codestral": "codestral-latest"
+      };
+
+      const actualModel = modelMapping[preferredModel] || "mistral-small-latest";
+      console.log(`🔥 Using Mistral model: ${preferredModel} -> ${actualModel}`);
+
+      const response = await mistral.chat.completions.create({
+        model: actualModel,
+        messages: [{ role: "user", content: enhancedPrompt }],
+        max_tokens: 2000,
+        temperature: 0.7,
+      });
+
+      const responseTime = Date.now() - startTime;
+      const text = response.choices[0]?.message?.content || "No response generated";
+
+      return {
+        response: text,
+        model: preferredModel,
+        responseTime,
+        success: true,
+      };
+    } catch (mistralError: any) {
+      console.log("❌ Mistral failed:", mistralError.message || mistralError);
+      const sanitizedError = sanitizeErrorMessage(mistralError.message || "API call failed", preferredModel);
+      return {
+        response: `API Error: ${preferredModel} failed to respond. Please try a different model.`,
+        model: preferredModel,
+        responseTime: Date.now() - startTime,
+        success: false,
+        error: sanitizedError
+      };
+    }
+  }
+
+  // Handle Cohere models
+  if (preferredModel && cohereModels.includes(preferredModel) && cohere) {
+    try {
+      const modelMapping: { [key: string]: string } = {
+        "command-light": "command-light",
+        "command-r": "command-r",
+        "command-r-plus": "command-r-plus",
+        "command-nightly": "command-nightly"
+      };
+
+      const actualModel = modelMapping[preferredModel] || "command-r";
+      console.log(`🔥 Using Cohere model: ${preferredModel} -> ${actualModel}`);
+
+      const response = await cohere.chat.completions.create({
+        model: actualModel,
+        messages: [{ role: "user", content: enhancedPrompt }],
+        max_tokens: 2000,
+        temperature: 0.7,
+      });
+
+      const responseTime = Date.now() - startTime;
+      const text = response.choices[0]?.message?.content || "No response generated";
+
+      return {
+        response: text,
+        model: preferredModel,
+        responseTime,
+        success: true,
+      };
+    } catch (cohereError: any) {
+      console.log("❌ Cohere failed:", cohereError.message || cohereError);
+      const sanitizedError = sanitizeErrorMessage(cohereError.message || "API call failed", preferredModel);
+      return {
+        response: `API Error: ${preferredModel} failed to respond. Please try a different model.`,
+        model: preferredModel,
+        responseTime: Date.now() - startTime,
+        success: false,
+        error: sanitizedError
+      };
+    }
+  }
+
+  // Handle Hugging Face models
+  if (preferredModel && huggingfaceModels.includes(preferredModel) && huggingface) {
+    try {
+      const modelMapping: { [key: string]: string } = {
+        "phi-3-mini": "microsoft/Phi-3-mini-4k-instruct",
+        "phi-3.5-mini": "microsoft/Phi-3.5-mini-instruct",
+        "phi-3-medium": "microsoft/Phi-3-medium-4k-instruct",
+        "phi-3-large": "microsoft/Phi-3-large-4k-instruct",
+        "qwen-2.5-3b": "Qwen/Qwen2.5-3B-Instruct",
+        "qwen-2.5-7b": "Qwen/Qwen2.5-7B-Instruct",
+        "qwen-2.5-32b": "Qwen/Qwen2.5-32B-Instruct",
+        "qwen-2.5-72b": "Qwen/Qwen2.5-72B-Instruct",
+        "qwen-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
+        "yi-large": "01-ai/Yi-Large"
+      };
+
+      const actualModel = modelMapping[preferredModel] || "microsoft/Phi-3-mini-4k-instruct";
+      console.log(`🤗 Using Hugging Face model: ${preferredModel} -> ${actualModel}`);
+
+      const response = await huggingface.chat.completions.create({
+        model: actualModel,
+        messages: [{ role: "user", content: enhancedPrompt }],
+        max_tokens: 2000,
+        temperature: 0.7,
+      });
+
+      const responseTime = Date.now() - startTime;
+      const text = response.choices[0]?.message?.content || "No response generated";
+
+      return {
+        response: text,
+        model: preferredModel,
+        responseTime,
+        success: true,
+      };
+    } catch (huggingfaceError: any) {
+      console.log("❌ Hugging Face failed:", huggingfaceError.message || huggingfaceError);
+      const sanitizedError = sanitizeErrorMessage(huggingfaceError.message || "API call failed", preferredModel);
+      return {
+        response: `API Error: ${preferredModel} failed to respond. Please contact support or check promptop.net/status for service updates.`,
+        model: preferredModel,
+        responseTime: Date.now() - startTime,
+        success: false,
+        error: sanitizedError
+      };
+    }
+  }
+
+  // Handle Perplexity models
+  if (preferredModel && perplexityModels.includes(preferredModel) && perplexity) {
+    try {
+      const modelMapping: { [key: string]: string } = {
+        "perplexity-sonar-large": "llama-3.1-sonar-large-128k-online"
+      };
+
+      const actualModel = modelMapping[preferredModel] || "llama-3.1-sonar-large-128k-online";
+      console.log(`🔍 Using Perplexity model: ${preferredModel} -> ${actualModel}`);
+
+      const response = await perplexity.chat.completions.create({
+        model: actualModel,
+        messages: [{ role: "user", content: enhancedPrompt }],
+        max_tokens: 2000,
+        temperature: 0.7,
+      });
+
+      const responseTime = Date.now() - startTime;
+      const text = response.choices[0]?.message?.content || "No response generated";
+
+      return {
+        response: text,
+        model: preferredModel,
+        responseTime,
+        success: true,
+      };
+    } catch (perplexityError: any) {
+      console.log("❌ Perplexity failed:", perplexityError.message || perplexityError);
+      const sanitizedError = sanitizeErrorMessage(perplexityError.message || "API call failed", preferredModel);
       return {
         response: `API Error: ${preferredModel} failed to respond. Please contact support or check promptop.net/status for service updates.`,
         model: preferredModel,
@@ -450,38 +678,47 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
   }
   console.log('🔍 Debug: preferredModel =', preferredModel, ', anthropic client =', !!anthropic);
   const claudeModels = {
-    // Claude 4 models (current working IDs from Anthropic docs)
-    "claude-4-sonnet": "claude-sonnet-4-20250514",
-    "claude-4-opus": "claude-opus-4-20250514",
-    
-    // Claude 3.7 models (current working IDs)
-    "claude-3.7-sonnet": "claude-3-7-sonnet-20250219",
-    "claude-3-7-sonnet-latest": "claude-3-7-sonnet-20250219",
-    
-    // Claude 3.5 models (current working IDs)
-    "claude-3.5-sonnet": "claude-3-7-sonnet-20250219", // Map to working 3.7
-    "claude-3.5-haiku": "claude-3-5-haiku-20241022", // Now available!
-    "claude-3.5-haiku-latest": "claude-3-5-haiku-20241022",
-    "claude-3-5-haiku-20241022": "claude-3-5-haiku-20241022",
-    
-    // Claude 3 models (working)
+    // Claude 4 models (map to latest available Claude 3.5 Sonnet)
+    "claude-4-sonnet": "claude-3-5-sonnet-20241022",
+
+    // Claude 3.5 models (official Anthropic API IDs)
+    "claude-3.5-haiku": "claude-3-5-haiku-20241022",
+
+    // Claude 3 models (official Anthropic API IDs)
     "claude-3-opus": "claude-3-opus-20240229",
+    "claude-3-sonnet": "claude-3-sonnet-20240229",
     "claude-3-haiku": "claude-3-haiku-20240307"
   };
-  
+
   console.log('🔍 Available Claude models:', Object.keys(claudeModels));
   console.log('🔍 Looking for model:', preferredModel, 'in mapping:', !!claudeModels[preferredModel as keyof typeof claudeModels]);
-  
+  console.log('🔍 Anthropic client status:', {
+    hasClient: !!anthropic,
+    hasApiKey: !!process.env.ANTHROPIC_API_KEY,
+    apiKeyPrefix: process.env.ANTHROPIC_API_KEY?.substring(0, 15) + '...'
+  });
+
   if (preferredModel && claudeModels[preferredModel as keyof typeof claudeModels] && anthropic) {
     try {
       const modelDisplayName = preferredModel.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
       const anthropicModelId = claudeModels[preferredModel as keyof typeof claudeModels];
       
       console.log(`🤖 Using ${modelDisplayName} as requested (${anthropicModelId})`);
+
+      // Set appropriate max_tokens based on model
+      const maxTokensMap: { [key: string]: number } = {
+        "claude-3-haiku-20240307": 4096,
+        "claude-3-5-haiku-20241022": 8192,
+        "claude-3-sonnet-20240229": 4096,
+        "claude-3-opus-20240229": 4096,
+        "claude-3-5-sonnet-20241022": 8192
+      };
+      const maxTokens = maxTokensMap[anthropicModelId] || 4096;
+
       const response = await anthropic.messages.create({
         model: anthropicModelId,
-        max_tokens: 20000,
-        temperature: 1,
+        max_tokens: maxTokens,
+        temperature: 0.7,
         messages: [{ role: "user", content: enhancedPrompt }],
       });
 
@@ -523,19 +760,24 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
     }
   }
 
-  // Try OpenAI models (GPT-4o, GPT-4o Mini, etc.)
-  const openaiModels = ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4o-high-context"];
+  // Try OpenAI models (GPT-3.5, GPT-4o, GPT-4o Mini, etc.)
+  const openaiModels = ["gpt-3.5-turbo", "gpt-3.5-turbo-instruct", "gpt-4", "gpt-4-32k", "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4o-high-context", "gpt-5o-nano"];
   if (preferredModel && openaiModels.includes(preferredModel) && openai) {
     try {
       const modelDisplayName = preferredModel.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
       console.log(`🤖 Using ${modelDisplayName} as requested`);
-      
+
       // Map model IDs to actual OpenAI model names
       const modelMapping: { [key: string]: string } = {
+        "gpt-3.5-turbo": "gpt-3.5-turbo",
+        "gpt-3.5-turbo-instruct": "gpt-3.5-turbo-instruct",
+        "gpt-4": "gpt-4",
+        "gpt-4-32k": "gpt-4-32k",
         "gpt-4o": "gpt-4o",
         "gpt-4o-mini": "gpt-4o-mini",
         "gpt-4-turbo": "gpt-4-turbo",
-        "gpt-4o-high-context": "gpt-4o"
+        "gpt-4o-high-context": "gpt-4o",
+        "gpt-5o-nano": "gpt-4o"
       };
       
       const response = await openai.chat.completions.create({
@@ -569,7 +811,6 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
   }
 
   // Try LLaMA models
-  const llamaModels = ["llama-3-8b", "llama-3-70b"];
   if (preferredModel && llamaModels.includes(preferredModel) && metaLlama) {
     try {
       const modelDisplayName = preferredModel.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -580,18 +821,28 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
         // For API LLM (apillm.com)
         if (process.env.META_API_KEY?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
           const apiLlmMapping: { [key: string]: string } = {
-            "llama-3-8b": "llama-3-8b-instruct",
-            "llama-3-70b": "llama-3-70b-instruct"
+            "llama-3.2-1b": "llama-3.2-1b-instruct",
+            "llama-3.2-3b": "llama-3.2-3b-instruct",
+            "llama-3.1-8b": "llama-3.1-8b-instruct",
+            "llama-3.2-90b": "llama-3.2-90b-instruct",
+            "llama-3.1-70b": "llama-3.1-70b-instruct",
+            "llama-3.1-405b": "llama-3.1-405b-instruct",
+            "llama-3.1-405b-instruct": "llama-3.1-405b-instruct"
           };
-          return apiLlmMapping[modelId] || "llama-3-8b-instruct";
+          return apiLlmMapping[modelId] || "llama-3.1-8b-instruct";
         }
 
         // For Together AI (default)
         const togetherMapping: { [key: string]: string } = {
-          "llama-3-8b": "meta-llama/Llama-3-8b-chat-hf",
-          "llama-3-70b": "meta-llama/Llama-3-70b-chat-hf"
+          "llama-3.2-1b": "meta-llama/Llama-3.2-1B-Instruct-Turbo",
+          "llama-3.2-3b": "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+          "llama-3.1-8b": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+          "llama-3.2-90b": "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
+          "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+          "llama-3.1-405b": "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+          "llama-3.1-405b-instruct": "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
         };
-        return togetherMapping[modelId] || "meta-llama/Llama-3-8b-chat-hf";
+        return togetherMapping[modelId] || "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo";
       };
 
       const modelName = getModelName(preferredModel);
@@ -627,10 +878,52 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
     }
   }
 
-  // Try Gemini if specified or as fallback
-  if ((preferredModel === "gemini-1.5-flash" || !preferredModel) && gemini) {
+  // Try Gemini models
+  const geminiModels = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-ultra"];
+  if (preferredModel && geminiModels.includes(preferredModel) && geminiClient) {
     try {
-      console.log("🤖 Using Gemini 1.5 Flash as requested");
+      const modelDisplayName = preferredModel.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      console.log(`🤖 Using ${modelDisplayName} as requested`);
+
+      // Map model IDs to actual Gemini model names
+      const modelMapping: { [key: string]: string } = {
+        "gemini-1.5-flash": "gemini-1.5-flash",
+        "gemini-1.5-flash-8b": "gemini-1.5-flash-8b",
+        "gemini-1.5-pro": "gemini-1.5-pro",
+        "gemini-1.0-pro": "gemini-1.0-pro",
+        "gemini-ultra": "gemini-1.5-pro" // Map to available model
+      };
+
+      const geminiModel = geminiClient.getGenerativeModel({ model: modelMapping[preferredModel] || "gemini-1.5-flash" });
+      const response = await geminiModel.generateContent(enhancedPrompt);
+
+      const responseTime = Date.now() - startTime;
+      const text = response.response.text() || "No response generated";
+
+      console.log(`✅ ${modelDisplayName} response successful`);
+      return {
+        response: text,
+        model: preferredModel,
+        responseTime,
+        success: true,
+      };
+    } catch (geminiError: any) {
+      console.log("❌ Gemini failed:", geminiError.message || geminiError);
+      const sanitizedError = sanitizeErrorMessage(geminiError.message || "API call failed", preferredModel);
+      return {
+        response: `API Error: ${preferredModel} failed to respond. Please contact support or check promptop.net/status for service updates.`,
+        model: preferredModel,
+        responseTime: Date.now() - startTime,
+        success: false,
+        error: sanitizedError
+      };
+    }
+  }
+
+  // Try Gemini as fallback if no model specified
+  if (!preferredModel && gemini) {
+    try {
+      console.log("🤖 Using Gemini 1.5 Flash as fallback");
       const response = await gemini.generateContent(enhancedPrompt);
 
       const responseTime = Date.now() - startTime;
@@ -647,8 +940,8 @@ export async function testPromptWithAI(promptContent: string, preferredModel?: s
       console.log("❌ Gemini failed:", geminiError.message || geminiError);
       const sanitizedError = sanitizeErrorMessage(geminiError.message || "API call failed", "Gemini 1.5 Flash");
       return {
-        response: `API Error: ${preferredModel || 'gemini-1.5-flash'} failed to respond. Please contact support or check promptop.net/status for service updates.`,
-        model: preferredModel || 'gemini-1.5-flash',
+        response: `API Error: gemini-1.5-flash failed to respond. Please contact support or check promptop.net/status for service updates.`,
+        model: 'gemini-1.5-flash',
         responseTime: Date.now() - startTime,
         success: false,
         error: sanitizedError

@@ -96,6 +96,88 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const user = req.user;
+    console.log('🔍 USER API - Current user data:', {
+      id: user?.id,
+      email: user?.email,
+      plan: user?.plan,
+      username: user?.username
+    });
+
     res.json(req.user);
+  });
+
+  // Sync Supabase auth with server session
+  app.post("/api/auth/sync-supabase", async (req, res) => {
+    try {
+      const { user_id, email } = req.body;
+      const authHeader = req.headers.authorization;
+
+      console.log('🔄 Auth sync request:', { user_id, email, hasAuthHeader: !!authHeader });
+
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'No auth token provided' });
+      }
+
+      const token = authHeader.split(' ')[1];
+
+      // Get user data from our users table
+      const user = await storage.getUser(user_id);
+      if (!user) {
+        console.error('❌ User not found in database:', user_id);
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      console.log('✅ Found user in database:', user.email, 'Plan:', user.plan);
+
+      // Establish server session by setting req.user
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Session establishment error:', err);
+          return res.status(500).json({ error: 'Failed to establish session' });
+        }
+
+        console.log('✅ Auth sync successful for:', user.email, 'Plan:', user.plan);
+        res.json({
+          success: true,
+          user: user,
+          message: 'Session established'
+        });
+      });
+
+    } catch (error: any) {
+      console.error('Auth sync error:', error);
+      res.status(500).json({ error: 'Auth sync failed' });
+    }
+  });
+
+  // Debug endpoint to test auth sync
+  app.post("/api/auth/debug-sync", async (req, res) => {
+    try {
+      // Hardcode the test user for debugging
+      const user = await storage.getUser('0ba7f2bf-f6de-4301-b021-301654c02f2d');
+      if (!user) {
+        return res.status(404).json({ error: 'Test user not found' });
+      }
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Debug session establishment error:', err);
+          return res.status(500).json({ error: 'Failed to establish session' });
+        }
+
+        console.log('✅ Debug auth sync successful for:', user.email, 'Plan:', user.plan);
+        res.json({
+          success: true,
+          user: user,
+          message: 'Debug session established'
+        });
+      });
+
+    } catch (error: any) {
+      console.error('Debug auth sync error:', error);
+      res.status(500).json({ error: 'Debug auth sync failed' });
+    }
   });
 }

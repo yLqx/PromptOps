@@ -265,7 +265,7 @@ ${originalPrompt}
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-black text-gray-100">
       <Header />
       
       <div className="flex h-screen pt-16">
@@ -279,20 +279,20 @@ ${originalPrompt}
                 <Wand2 className="text-white h-6 w-6" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-foreground font-['DM_Sans']">
+                <h1 className="text-3xl font-bold text-gray-100 font-['DM_Sans']">
                   AI Prompt Enhancer
                 </h1>
-                <p className="text-muted-foreground font-['DM_Sans']">
+                <p className="text-gray-400 font-['DM_Sans']">
                   Transform your prompts with AI-driven enhancements
                 </p>
                 <div className="flex items-center gap-3 mt-2">
                   <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">
                     <Clock className="h-3 w-3 mr-1" />
-                    {enhancementsUsed}/{enhancementsLimit === Infinity ? "∞" : enhancementsLimit} used
+                    {enhancementsUsed}/{enhancementsLimit === Infinity ? "∞" : (enhancementsLimit || 0)} used
                   </Badge>
                   <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
                     <Sparkles className="h-3 w-3 mr-1" />
-                    {enhancementsLimit === Infinity ? "Unlimited" : `${Math.max(0, enhancementsLimit - enhancementsUsed)} remaining`}
+                    {enhancementsLimit === Infinity ? "Unlimited" : `${Math.max(0, (typeof enhancementsLimit === 'number' ? enhancementsLimit : 0) - enhancementsUsed)} remaining`}
                   </Badge>
                 </div>
               </div>
@@ -309,8 +309,8 @@ ${originalPrompt}
                     <div className="w-12 h-12 rounded-lg bg-emerald-600 flex items-center justify-center mx-auto mb-3">
                       {enhancement.icon}
                     </div>
-                    <h3 className="text-sm font-semibold text-foreground mb-1">{enhancement.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{enhancement.description}</p>
+                    <h3 className="text-sm font-semibold text-gray-100 mb-1">{enhancement.title}</h3>
+                    <p className="text-xs text-gray-400 leading-relaxed">{enhancement.description}</p>
                     <CheckCircle className="h-4 w-4 text-emerald-400 mx-auto mt-2" />
                   </CardContent>
                 </Card>
@@ -322,11 +322,11 @@ ${originalPrompt}
             {/* Original Prompt Input */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-foreground flex items-center">
+                <CardTitle className="text-gray-100 flex items-center">
                   <Sparkles className="mr-2 h-5 w-5 text-emerald-500" />
                   Original Prompt
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-400">
                   Enter your prompt to enhance with AI optimization
                 </p>
               </CardHeader>
@@ -378,7 +378,7 @@ ${originalPrompt}
             {/* Enhanced Prompt Output */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-foreground flex items-center justify-between">
+                <CardTitle className="text-gray-100 flex items-center justify-between">
                   <div className="flex items-center">
                     <Zap className="mr-2 h-5 w-5 text-emerald-500" />
                     Enhanced Prompt
@@ -399,7 +399,7 @@ ${originalPrompt}
                   )}
                 </CardTitle>
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-400">
                     AI-optimized version with quality scoring
                   </p>
                   {enhancementModel && (

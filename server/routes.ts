@@ -3,17 +3,17 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { supabaseAuth } from "./supabase-auth";
 import { storage } from "./storage";
-import { supabaseAdmin } from "./supabase";
+import { supabaseAdmin, supabase } from "./supabase";
 import { setupCommunityRoutes } from "./community-routes";
 import { testPromptWithAI, enhancePromptWithAI } from "./ai";
-import { AI_MODELS, getModelsByTier, getAvailableModelsForUser, getModelById } from "../shared/ai-models.js";
+import { AI_MODELS, getModelsByTier, getAvailableModelsForUser, getModelById, isModelAvailableForUser } from "../shared/ai-models.js";
 import { insertPromptSchema, insertPromptRunSchema } from "@shared/schema";
 import { moderatePromptContent, generateModerationReport } from "./lib/content-moderation";
 import Stripe from "stripe";
 
 // Initialize Stripe
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-06-30.basil",
+  apiVersion: "2025-08-27.basil",
 }) : null;
 
 // Server start time for auto-logout feature
@@ -112,7 +112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ startTime: SERVER_START_TIME });
   });
 
-  // Auth middleware - require authenticated user
+  // Auth middleware - require authenticated user (keep existing session-based auth)
   const requireAuth = (req: any, res: any, next: any) => {
     if (!req.user) {
       return res.status(401).json({ message: "Authentication required" });
@@ -129,23 +129,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const currentUser = await storage.getUser(user.id);
     if (!currentUser) return res.sendStatus(404);
 
-    // Get limit from subscription_limits table with hardcoded fallback
-    const { data: subscriptionLimits } = await supabaseAdmin
+    // Get limit from subscription_limits table (ONLY Supabase, no hardcoded fallback)
+    const { data: subscriptionLimits, error: limitsError } = await supabaseAdmin
       .from('subscription_limits')
       .select('prompts_per_month')
       .eq('tier', currentUser.plan)
       .single();
 
-    // Hardcoded fallback limits
-    const hardcodedPromptLimits = {
-      free: 15,
-      pro: 1000,
-      team: 7500,
-      enterprise: -1
-    };
+    if (limitsError || !subscriptionLimits) {
+      console.error('❌ Failed to get subscription limits from Supabase:', limitsError);
+      return res.status(500).json({ error: 'Failed to check subscription limits' });
+    }
 
-    const userLimit = subscriptionLimits?.prompts_per_month ??
-      hardcodedPromptLimits[currentUser.plan as keyof typeof hardcodedPromptLimits] ?? 15;
+    const userLimit = subscriptionLimits.prompts_per_month;
     const promptsUsed = currentUser.prompts_used || 0;
 
     if (userLimit !== -1 && promptsUsed >= userLimit) {
@@ -232,34 +228,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // prompts_used is for test usage tracking, not for saved prompts
       const promptTestsUsed = currentUser.prompts_used || 0;
 
-      // Fetch limits from subscription_limits table based on user's plan
+      // Fetch limits from subscription_limits table (ONLY Supabase, no hardcoded fallback)
       const { data: subscriptionLimits, error: limitsError } = await supabaseAdmin
         .from('subscription_limits')
         .select('prompts_per_month, ai_enhancements_per_month, prompt_slots')
         .eq('tier', currentUser.plan)
         .single();
 
-      // Hardcoded fallback limits in case subscription_limits table fails
-      const hardcodedLimits = {
-        free: { prompts: 15, enhancements: 5, slots: 25 },
-        pro: { prompts: 1000, enhancements: 150, slots: 500 },
-        team: { prompts: 7500, enhancements: 2000, slots: -1 },
-        enterprise: { prompts: -1, enhancements: -1, slots: -1 }
-      };
-
-      let finalPromptsLimit, finalEnhancementsLimit, finalSlotsLimit;
-
       if (limitsError || !subscriptionLimits) {
-        console.warn('⚠️ Subscription limits query failed, using hardcoded values:', { limitsError, subscriptionLimits });
-        const fallback = hardcodedLimits[currentUser.plan as keyof typeof hardcodedLimits] || hardcodedLimits.free;
-        finalPromptsLimit = fallback.prompts;
-        finalEnhancementsLimit = fallback.enhancements;
-        finalSlotsLimit = fallback.slots;
-      } else {
-        finalPromptsLimit = subscriptionLimits.prompts_per_month;
-        finalEnhancementsLimit = subscriptionLimits.ai_enhancements_per_month;
-        finalSlotsLimit = subscriptionLimits.prompt_slots;
+        console.error('❌ Failed to get subscription limits from Supabase:', limitsError);
+        return res.status(500).json({ error: 'Failed to fetch subscription limits' });
       }
+
+      const finalPromptsLimit = subscriptionLimits.prompts_per_month;
+      const finalEnhancementsLimit = subscriptionLimits.ai_enhancements_per_month;
+      const finalSlotsLimit = subscriptionLimits.prompt_slots;
 
       // Debug log to see what's being returned
       console.log('🔍 USAGE API DEBUG:', {
@@ -418,27 +401,259 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!['free', 'pro', 'enterprise'].includes(tier)) {
         return res.status(400).json({ message: "Invalid tier. Must be 'free', 'pro', or 'enterprise'" });
       }
-      const models = getModelsByTier(tier as 'free' | 'pro' | 'enterprise');
+      const models = getModelsByTier(tier as 'free' | 'pro' | 'team');
       res.json(models);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  // Get available models for user (based on their plan)
-  app.get("/api/models/available", requireAuth, async (req, res) => {
+  // Debug endpoint to check user plan detection
+  app.get("/api/debug/user-plan", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
       const currentUser = await storage.getUser(user.id);
-      
-      if (!currentUser) {
-        return res.status(404).json({ error: "User not found" });
+
+      console.log('🔍 Debug user plan detection:', {
+        reqUser: user,
+        currentUser: currentUser,
+        userPlan: currentUser?.plan || 'free'
+      });
+
+      const userPlan = currentUser?.plan || 'free';
+      const availableModels = getAvailableModelsForUser(userPlan);
+
+      res.json({
+        sessionUser: {
+          id: user.id,
+          email: user.email,
+          plan: user.plan
+        },
+        databaseUser: currentUser ? {
+          id: currentUser.id,
+          email: currentUser.email,
+          plan: currentUser.plan,
+          promptsUsed: currentUser.promptsUsed,
+          enhancementsUsed: currentUser.enhancementsUsed
+        } : null,
+        finalUserPlan: userPlan,
+        availableModels: availableModels.length,
+        modelsByTier: {
+          free: availableModels.filter(m => m.tier === 'free').length,
+          pro: availableModels.filter(m => m.tier === 'pro').length,
+          team: availableModels.filter(m => m.tier === 'team').length
+        },
+        sampleProModels: availableModels.filter(m => m.tier === 'pro').slice(0, 3).map(m => m.name)
+      });
+    } catch (error: any) {
+      console.error('Debug user plan error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Test endpoint for Claude models (no auth required for testing)
+  app.post("/api/test/claude-models", async (req, res) => {
+    try {
+      const { model, prompt } = req.body;
+
+      if (!model || !prompt) {
+        return res.status(400).json({ error: 'Model and prompt are required' });
       }
 
-      const userPlan = currentUser.plan || 'free';
-      const availableModels = getAvailableModelsForUser(userPlan);
-      res.json(availableModels);
+      console.log(`🧪 Testing Claude model: ${model}`);
+
+      const aiResponse = await testPromptWithAI(prompt, model);
+
+      if (aiResponse.success) {
+        console.log(`✅ Claude model ${model} test successful`);
+        res.json({
+          success: true,
+          model: model,
+          response: aiResponse.response,
+          responseTime: aiResponse.responseTime
+        });
+      } else {
+        console.log(`❌ Claude model ${model} test failed:`, aiResponse.error);
+        res.status(500).json({
+          success: false,
+          model: model,
+          error: aiResponse.error
+        });
+      }
     } catch (error: any) {
+      console.error('Claude model test error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Test endpoint for ALL AI models (no auth required for testing)
+  app.post("/api/test/ai-models", async (req, res) => {
+    try {
+      const { model, prompt } = req.body;
+
+      if (!model || !prompt) {
+        return res.status(400).json({ error: 'Model and prompt are required' });
+      }
+
+      console.log(`🧪 Testing AI model: ${model}`);
+
+      const aiResponse = await testPromptWithAI(prompt, model);
+
+      if (aiResponse.success) {
+        console.log(`✅ AI model ${model} test successful`);
+        res.json({
+          success: true,
+          model: model,
+          response: aiResponse.response,
+          responseTime: aiResponse.responseTime
+        });
+      } else {
+        console.log(`❌ AI model ${model} test failed:`, aiResponse.error);
+        res.status(500).json({
+          success: false,
+          model: model,
+          error: aiResponse.error
+        });
+      }
+    } catch (error: any) {
+      console.error('AI model test error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all available models with their implementation status
+  app.get("/api/test/models-status", async (req, res) => {
+    try {
+      const allModels = AI_MODELS.map(model => ({
+        id: model.id,
+        name: model.name,
+        provider: model.provider,
+        tier: model.tier,
+        enabled: model.enabled,
+        category: model.category,
+        apiKeyEnvVar: model.apiKeyEnvVar,
+        hasApiKey: !!process.env[model.apiKeyEnvVar]
+      }));
+
+      const summary = {
+        total: allModels.length,
+        enabled: allModels.filter(m => m.enabled).length,
+        byTier: {
+          free: allModels.filter(m => m.tier === 'free' && m.enabled).length,
+          pro: allModels.filter(m => m.tier === 'pro' && m.enabled).length,
+          team: allModels.filter(m => m.tier === 'team' && m.enabled).length
+        },
+        byProvider: allModels.reduce((acc, model) => {
+          if (model.enabled) {
+            acc[model.provider] = (acc[model.provider] || 0) + 1;
+          }
+          return acc;
+        }, {} as Record<string, number>),
+        withApiKeys: allModels.filter(m => m.hasApiKey).length
+      };
+
+      res.json({
+        models: allModels,
+        summary
+      });
+    } catch (error: any) {
+      console.error('Models status error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get available models for user (based on their plan) - SIMPLE & RELIABLE
+  app.get("/api/models/available", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      let userPlan = user.plan || 'free';
+
+      console.log('🔍 Models available request (initial):', {
+        userId: user.id,
+        userEmail: user.email,
+        userPlan: userPlan
+      });
+
+      // ALWAYS fetch fresh user data from database to ensure plan is up-to-date
+      try {
+        const currentUser = await storage.getUser(user.id);
+        if (currentUser && currentUser.plan) {
+          userPlan = currentUser.plan;
+          console.log('✅ Fresh plan from database:', user.email, '->', userPlan);
+        } else {
+          // Fallback: Try Supabase directly
+          const { data: freshUserData, error: userError } = await supabaseAdmin
+            .from('users')
+            .select('plan')
+            .eq('email', user.email)
+            .single();
+
+          if (!userError && freshUserData?.plan) {
+            userPlan = freshUserData.plan;
+            console.log('✅ FALLBACK: Updated plan from Supabase:', user.email, '->', userPlan);
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Plan fetch failed, using session plan:', error);
+      }
+
+      // Simple plan-based model access (no complex subscription_limits lookup)
+      let allowedTiers: string[] = [];
+
+      switch (userPlan.toLowerCase()) {
+        case 'free':
+          allowedTiers = ['free'];
+          break;
+        case 'pro':
+          allowedTiers = ['free', 'pro'];
+          break;
+        case 'team':
+          allowedTiers = ['free', 'pro', 'team'];
+          break;
+        case 'enterprise':
+          allowedTiers = ['free', 'pro', 'team', 'enterprise'];
+          break;
+        default:
+          // Default to free if plan is unknown
+          allowedTiers = ['free'];
+          console.warn('⚠️ Unknown plan, defaulting to free:', userPlan);
+      }
+
+      console.log('✅ Plan-based access:', {
+        userPlan: userPlan,
+        allowedTiers: allowedTiers
+      });
+
+      // Get available models from local AI_MODELS array based on allowed tiers
+      const availableModels = getAvailableModelsForUser(userPlan);
+
+      // Group models by tier for better debugging
+      const modelsByTier = {
+        free: availableModels.filter(m => m.tier === 'free'),
+        pro: availableModels.filter(m => m.tier === 'pro'),
+        team: availableModels.filter(m => m.tier === 'team')
+      };
+
+      console.log('✅ SIMPLE PLAN SYSTEM - Models available:', {
+        userEmail: user.email,
+        userPlan: userPlan,
+        allowedTiers: allowedTiers,
+        totalModels: availableModels?.length || 0,
+        modelsByTier: {
+          free: modelsByTier.free.length,
+          pro: modelsByTier.pro.length,
+          team: modelsByTier.team.length
+        }
+      });
+
+      // Return the format the frontend expects: { models, userPlan }
+      res.json({
+        models: availableModels || [],
+        userPlan: userPlan,
+        modelsByTier: modelsByTier
+      });
+    } catch (error: any) {
+      console.error('Error fetching available models:', error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -514,23 +729,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userPrompts = await storage.getUserPrompts(user.id);
       const currentSlotUsage = userPrompts.length;
 
-      // Get slot limit from subscription_limits table with hardcoded fallback
-      const { data: subscriptionLimits } = await supabaseAdmin
+      // Get slot limit from subscription_limits table (ONLY Supabase, no hardcoded fallback)
+      const { data: subscriptionLimits, error: limitsError } = await supabaseAdmin
         .from('subscription_limits')
         .select('prompt_slots')
         .eq('tier', currentUser.plan)
         .single();
 
-      // Hardcoded fallback slot limits
-      const hardcodedSlotLimits = {
-        free: 25,
-        pro: 500,
-        team: -1, // unlimited
-        enterprise: -1 // unlimited
-      };
+      if (limitsError || !subscriptionLimits) {
+        console.error('❌ Failed to get slot limits from Supabase:', limitsError);
+        return res.status(500).json({ error: 'Failed to check slot limits' });
+      }
 
-      const slotLimit = subscriptionLimits?.prompt_slots ??
-        hardcodedSlotLimits[currentUser.plan as keyof typeof hardcodedSlotLimits] ?? 25;
+      const slotLimit = subscriptionLimits.prompt_slots;
 
       // Check if user has reached slot limit
       if (slotLimit !== -1 && currentSlotUsage >= slotLimit) {
@@ -716,19 +927,132 @@ Generate a professional prompt based on what the user described:`;
     try {
       let { promptContent, promptId, model } = req.body;
 
-      // ULTIMATE FIX: Force correct model at the API level
-      if (model === "gemini-2.5-flash") {
-        console.log('🚨 TEST API LEVEL FIX: gemini-2.5-flash -> gemini-1.5-flash');
-        model = "gemini-1.5-flash";
+      console.log('🔍 Test prompt request - received model:', model, 'promptContent length:', promptContent?.length);
+
+      // Convert model to the actual model name (handle both UUIDs and direct names)
+      let actualModelName = model;
+
+      // First, handle direct model name mapping (for backwards compatibility)
+      const directModelMapping: { [key: string]: string } = {
+        'claude-3-haiku-20240307': 'claude-3-haiku',
+        'claude-3-5-haiku-20241022': 'claude-3.5-haiku',
+        'claude-3-opus-20240229': 'claude-3-opus',
+        'claude-3-7-sonnet-20250219': 'claude-3.7-sonnet',
+        'gemini-2.5-flash': 'gemini-1.5-flash', // Fix common typo
+        'gemini-1.5-flash': 'gemini-1.5-flash',
+        'gpt-4o': 'gpt-4o',
+        'deepseek-chat': 'deepseek-chat',
+        'deepseek-coder': 'deepseek-coder-v3.0',
+        'llama-3-8b-instruct': 'llama-3-8b',
+        'llama-3-70b-instruct': 'llama-3-70b'
+      };
+
+      if (directModelMapping[model]) {
+        actualModelName = directModelMapping[model];
+        console.log('✅ Direct model mapping:', model, '->', actualModelName);
+      } else if (model && model.length === 36 && model.includes('-')) {
+        // This looks like a UUID, fetch the actual model name from Supabase
+        try {
+          const { data: modelData, error: modelError } = await supabaseAdmin
+            .from('ai_models')
+            .select('model_id, name')
+            .eq('id', model)
+            .single();
+
+          if (modelError || !modelData) {
+            console.error('❌ Failed to find model with UUID:', model, modelError);
+            return res.status(400).json({ message: `Invalid model ID: ${model}` });
+          }
+
+          // Map Supabase model_id to AI service expected names
+          const modelMapping: { [key: string]: string } = {
+            // Claude models
+            'claude-3-haiku-20240307': 'claude-3-haiku',
+            'claude-3-5-haiku-20241022': 'claude-3.5-haiku',
+            'claude-3-opus-20240229': 'claude-3-opus',
+            'claude-3-7-sonnet-20250219': 'claude-3.7-sonnet',
+            'claude-3.5-sonnet': 'claude-3.5-sonnet',
+            'claude-3.5-haiku': 'claude-3.5-haiku',
+            'claude-3-haiku': 'claude-3-haiku',
+            'claude-3-opus': 'claude-3-opus',
+
+            // Google models
+            'gemini-1.5-flash': 'gemini-1.5-flash',
+            'gemini-1.5-pro': 'gemini-1.5-pro',
+            'gemini-2.0-flash-exp': 'gemini-2.0-flash-exp',
+
+            // OpenAI models
+            'gpt-4o': 'gpt-4o',
+            'gpt-4o-mini': 'gpt-4o-mini',
+            'gpt-4-turbo': 'gpt-4-turbo',
+
+            // DeepSeek models
+            'deepseek-chat': 'deepseek-chat',
+            'deepseek-coder': 'deepseek-coder-v3.0',
+            'deepseek-coder-v3.0': 'deepseek-coder-v3.0',
+
+            // LLaMA models
+            'llama-3-8b-instruct': 'llama-3-8b',
+            'llama-3-70b-instruct': 'llama-3-70b',
+            'llama-3-8b': 'llama-3-8b',
+            'llama-3-70b': 'llama-3-70b'
+          };
+
+          const rawModelId = modelData.model_id;
+          actualModelName = modelMapping[rawModelId] || rawModelId;
+          console.log('✅ Converted UUID to model name:', model, '->', rawModelId, '->', actualModelName);
+        } catch (error) {
+          console.error('❌ Error converting model UUID:', error);
+          return res.status(400).json({ message: `Failed to resolve model: ${model}` });
+        }
       }
 
-      console.log('🔍 Test prompt request - model:', model, 'promptContent length:', promptContent?.length);
+      // ULTIMATE FIX: Force correct model at the API level
+      if (actualModelName === "gemini-2.5-flash") {
+        console.log('🚨 TEST API LEVEL FIX: gemini-2.5-flash -> gemini-1.5-flash');
+        actualModelName = "gemini-1.5-flash";
+      }
+
+      console.log('🔍 Final model name for AI service:', actualModelName);
 
       if (!promptContent) {
         return res.status(400).json({ message: "Prompt content is required" });
       }
 
-      const aiResponse = await testPromptWithAI(promptContent, model);
+      // 🔒 VALIDATE MODEL ACCESS - Check if user's plan allows access to this model
+      const user = req.user!;
+      let userPlan = user.plan || 'free';
+
+      // Get fresh user plan from database
+      try {
+        const currentUser = await storage.getUser(user.id);
+        if (currentUser && currentUser.plan) {
+          userPlan = currentUser.plan;
+          console.log('✅ Fresh user plan from database:', user.email, '->', userPlan);
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to get fresh user plan, using session plan:', userPlan);
+      }
+
+      // Check if user can access this model
+      const hasModelAccess = isModelAvailableForUser(actualModelName, userPlan);
+      if (!hasModelAccess) {
+        const model = getModelById(actualModelName);
+        const modelTier = model?.tier || 'unknown';
+        console.log(`❌ Model access denied: ${user.email} (${userPlan}) tried to access ${actualModelName} (${modelTier})`);
+
+        return res.status(403).json({
+          message: `Access denied: ${actualModelName} requires ${modelTier} plan. Your current plan: ${userPlan}`,
+          error: "INSUFFICIENT_PLAN",
+          requiredPlan: modelTier,
+          currentPlan: userPlan,
+          modelName: actualModelName
+        });
+      }
+
+      console.log(`✅ Model access granted: ${user.email} (${userPlan}) can access ${actualModelName}`);
+
+      const aiResponse = await testPromptWithAI(promptContent, actualModelName);
 
       // Record run and update usage
       const runData = {
@@ -761,23 +1085,20 @@ Generate a professional prompt based on what the user described:`;
 
           const currentUsage = currentUser.prompts_used || 0;
           
-          // Get user's limit from subscription_limits table with hardcoded fallback
-          const { data: subscriptionLimits } = await supabaseAdmin
+          // Get user's limit from subscription_limits table (ONLY Supabase, no hardcoded fallback)
+          const { data: subscriptionLimits, error: limitsError } = await supabaseAdmin
             .from('subscription_limits')
             .select('prompts_per_month')
             .eq('tier', currentUser.plan)
             .single();
 
-          // Hardcoded fallback limits
-          const hardcodedPromptLimits = {
-            free: 15,
-            pro: 1000,
-            team: 7500,
-            enterprise: -1
-          };
+          if (limitsError || !subscriptionLimits) {
+            console.error('❌ Failed to get prompt limits from Supabase:', limitsError);
+            // Still return the successful AI response, but log the error
+            return res.json(aiResponse);
+          }
 
-          const userLimit = subscriptionLimits?.prompts_per_month ??
-            hardcodedPromptLimits[currentUser.plan as keyof typeof hardcodedPromptLimits] ?? 15;
+          const userLimit = subscriptionLimits.prompts_per_month;
 
           // Check if user would exceed limit with this usage
           if (userLimit !== -1 && currentUsage >= userLimit) {
@@ -793,7 +1114,7 @@ Generate a professional prompt based on what the user described:`;
           console.log(`✅ Usage updated: ${newUsage} prompts used (limit: ${userLimit === -1 ? 'unlimited' : userLimit})`);
 
           // Update the user object in the request for immediate response
-          req.user!.prompts_used = newUsage;
+          req.user!.promptsUsed = newUsage;
         } catch (error) {
           console.warn('❌ Failed to update user usage:', error);
         }
@@ -932,7 +1253,7 @@ Generate a professional prompt based on what the user described:`;
 
         res.json({
           status: subscription.status,
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
           cancel_at_period_end: subscription.cancel_at_period_end,
           plan: user.plan,
           price_id: subscription.items.data[0]?.price.id
@@ -1033,7 +1354,7 @@ Generate a professional prompt based on what the user described:`;
               plan,
               stripe_subscription_id: subscription.id,
               subscription_status: subscription.status,
-              subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              subscription_current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
               prompts_used: 0,
               enhancements_used: 0,
               api_calls_used: 0
@@ -1140,7 +1461,7 @@ Generate a professional prompt based on what the user described:`;
           const invoice = event.data.object;
           console.log('Payment succeeded for invoice:', invoice.id);
           // Reset billing cycle on successful payment
-          if (invoice.subscription && invoice.metadata?.userId) {
+          if ((invoice as any).subscription && invoice.metadata?.userId) {
             await checkAndResetBillingCycle(invoice.metadata.userId);
           }
           break;
@@ -1166,9 +1487,10 @@ Generate a professional prompt based on what the user described:`;
   app.post("/api/support-tickets", requireAuth, async (req, res) => {
     try {
       const { title, description, urgency } = req.body;
-      const ticket = await storage.createSupportTicket(req.user!.id, {
+      const ticket = await storage.createSupportTicket({
+        userId: req.user!.id,
         subject: title,
-        description, 
+        description,
         priority: urgency,
         category: "general"
       });
@@ -1458,9 +1780,19 @@ Generate a professional prompt based on what the user described:`;
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Simple limit checking
-      const enhancementLimits = { free: 5, pro: 150, team: 2000, enterprise: -1 };
-      const userLimit = enhancementLimits[currentUser.plan as keyof typeof enhancementLimits] ?? 5;
+      // Get enhancement limits from subscription_limits table (ONLY Supabase, no hardcoded fallback)
+      const { data: subscriptionLimits, error: limitsError } = await supabaseAdmin
+        .from('subscription_limits')
+        .select('ai_enhancements_per_month')
+        .eq('tier', currentUser.plan)
+        .single();
+
+      if (limitsError || !subscriptionLimits) {
+        console.error('❌ Failed to get enhancement limits from Supabase:', limitsError);
+        return res.status(500).json({ error: 'Failed to check enhancement limits' });
+      }
+
+      const userLimit = subscriptionLimits.ai_enhancements_per_month;
       const enhancementsUsed = currentUser.enhancements_used || 0;
 
       if (userLimit !== -1 && enhancementsUsed >= userLimit) {

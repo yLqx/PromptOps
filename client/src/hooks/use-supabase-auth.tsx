@@ -8,6 +8,7 @@ interface AuthContextType {
   register: (email: string, password: string, username: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  refreshUserData: () => Promise<void>;
   isLoading: boolean;
   isConnected: boolean;
 }
@@ -68,22 +69,22 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .limit(1);
 
-      if (error || !data || data.length === 0) {
+      if (error || !data || data?.length === 0) {
         console.error('Profile fetch error:', error);
 
         // If user doesn't exist in database, create them from auth data
         const { data: { user: authUser } } = await supabase.auth.getUser();
         if (authUser) {
           console.log('Creating fallback user profile immediately...');
-          const baseUsername = (authUser.email?.split('@')[0] || 'user').replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 20) || 'user';
+          const baseUsername = (authUser!.email?.split('@')[0] || 'user').replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 20) || 'user';
 
           // Create fallback user immediately to prevent auth loops
           const fallbackUser: User = {
-            id: authUser.id,
-            email: authUser.email || '',
+            id: authUser!.id,
+            email: authUser!.email || '',
             username: baseUsername,
-            full_name: authUser.user_metadata?.full_name || '',
-            avatar_url: authUser.user_metadata?.avatar_url || undefined,
+            full_name: authUser!.user_metadata?.full_name || '',
+            avatar_url: authUser!.user_metadata?.avatar_url || undefined,
             plan: 'free',
             prompts_used: 0,
             enhancements_used: 0,
@@ -104,7 +105,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
           throw new Error('No auth user found');
         }
       } else {
-        const userData = data[0];
+        const userData = data![0];
         console.log('✅ Profile fetched successfully:', userData.username);
         setUser(userData);
         saveUserToStorage(userData);
@@ -142,8 +143,8 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
           console.log('✅ Using cached user:', cachedUser.email);
           setUser(cachedUser);
           setIsLoading(false);
-          setIsFetchingProfile(false); // Make sure this is also false
-          return; // Use cached user and don't fetch from server
+          setIsFetchingProfile(false);
+          return; // Use cached user and don't fetch from server to avoid issues
         }
 
         // Set a shorter timeout to prevent infinite loading
@@ -173,27 +174,59 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           console.log('📱 Found session for:', session.user.email);
 
-          // Create simple user object immediately instead of fetching profile
-          const simpleUser: User = {
-            id: session.user.id,
-            email: session.user.email || '',
-            username: session.user.email?.split('@')[0] || 'user',
-            full_name: session.user.user_metadata?.full_name || '',
-            avatar_url: session.user.user_metadata?.avatar_url || undefined,
-            plan: 'free',
-            prompts_used: 0,
-            enhancements_used: 0,
-            api_calls_used: 0,
-            bio: undefined,
-            website: undefined,
-            location: undefined,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-
-          setUser(simpleUser);
-          saveUserToStorage(simpleUser);
-          setIsLoading(false);
+          // Fetch real user data from server instead of hardcoding plan
+          try {
+            const realUser = await getCurrentUser();
+            if (realUser) {
+              console.log('✅ Got real user data with plan:', realUser.plan);
+              setUser(realUser);
+              saveUserToStorage(realUser);
+              setIsLoading(false);
+            } else {
+              // Fallback to simple user if server fetch fails
+              const simpleUser: User = {
+                id: session.user.id,
+                email: session.user.email || '',
+                username: session.user.email?.split('@')[0] || 'user',
+                full_name: session.user.user_metadata?.full_name || '',
+                avatar_url: session.user.user_metadata?.avatar_url || undefined,
+                plan: 'free',
+                prompts_used: 0,
+                enhancements_used: 0,
+                api_calls_used: 0,
+                bio: undefined,
+                website: undefined,
+                location: undefined,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              };
+              setUser(simpleUser);
+              saveUserToStorage(simpleUser);
+              setIsLoading(false);
+            }
+          } catch (error) {
+            console.error('Failed to fetch real user data:', error);
+            // Fallback to simple user
+            const simpleUser: User = {
+              id: session.user.id,
+              email: session.user.email || '',
+              username: session.user.email?.split('@')[0] || 'user',
+              full_name: session.user.user_metadata?.full_name || '',
+              avatar_url: session.user.user_metadata?.avatar_url || undefined,
+              plan: 'free',
+              prompts_used: 0,
+              enhancements_used: 0,
+              api_calls_used: 0,
+              bio: undefined,
+              website: undefined,
+              location: undefined,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            setUser(simpleUser);
+            saveUserToStorage(simpleUser);
+            setIsLoading(false);
+          }
         } else {
           console.log('❌ No session found');
           setUser(null);
@@ -218,26 +251,59 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       console.log('🔄 Auth state changed:', event);
 
       if (event === 'SIGNED_IN' && session?.user) {
-        // Don't fetch profile, just create simple user
-        const simpleUser: User = {
-          id: session.user.id,
-          email: session.user.email || '',
-          username: session.user.email?.split('@')[0] || 'user',
-          full_name: session.user.user_metadata?.full_name || '',
-          avatar_url: session.user.user_metadata?.avatar_url || undefined,
-          plan: 'free',
-          prompts_used: 0,
-          enhancements_used: 0,
-          api_calls_used: 0,
-          bio: undefined,
-          website: undefined,
-          location: undefined,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        setUser(simpleUser);
-        saveUserToStorage(simpleUser);
-        setIsLoading(false);
+        // Fetch real user data from server
+        try {
+          const realUser = await getCurrentUser();
+          if (realUser) {
+            console.log('✅ Auth state change - got real user data with plan:', realUser.plan);
+            setUser(realUser);
+            saveUserToStorage(realUser);
+            setIsLoading(false);
+          } else {
+            // Fallback to simple user
+            const simpleUser: User = {
+              id: session.user.id,
+              email: session.user.email || '',
+              username: session.user.email?.split('@')[0] || 'user',
+              full_name: session.user.user_metadata?.full_name || '',
+              avatar_url: session.user.user_metadata?.avatar_url || undefined,
+              plan: 'free',
+              prompts_used: 0,
+              enhancements_used: 0,
+              api_calls_used: 0,
+              bio: undefined,
+              website: undefined,
+              location: undefined,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            setUser(simpleUser);
+            saveUserToStorage(simpleUser);
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.error('Failed to fetch real user data on auth change:', error);
+          // Fallback to simple user
+          const simpleUser: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            username: session.user.email?.split('@')[0] || 'user',
+            full_name: session.user.user_metadata?.full_name || '',
+            avatar_url: session.user.user_metadata?.avatar_url || undefined,
+            plan: 'free',
+            prompts_used: 0,
+            enhancements_used: 0,
+            api_calls_used: 0,
+            bio: undefined,
+            website: undefined,
+            location: undefined,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          setUser(simpleUser);
+          saveUserToStorage(simpleUser);
+          setIsLoading(false);
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         saveUserToStorage(null);
@@ -273,28 +339,61 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data?.user) {
-        console.log('✅ Login successful for:', data.user.email);
+        console.log('✅ Supabase login successful for:', data.user.email);
 
-        // Create a simple user object immediately
-        const simpleUser: User = {
-          id: data.user.id,
-          email: data.user.email || '',
-          username: data.user.email?.split('@')[0] || 'user',
-          full_name: data.user.user_metadata?.full_name || '',
-          avatar_url: data.user.user_metadata?.avatar_url || undefined,
-          plan: 'free',
-          prompts_used: 0,
-          enhancements_used: 0,
-          api_calls_used: 0,
-          bio: undefined,
-          website: undefined,
-          location: undefined,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
+        // Establish server-side session by calling a sync endpoint
+        try {
+          // Call server-side auth sync endpoint to establish session
+          const syncResponse = await fetch('/api/auth/sync-supabase', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${data.session?.access_token}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              user_id: data.user.id,
+              email: data.user.email
+            })
+          });
 
-        setUser(simpleUser);
-        saveUserToStorage(simpleUser);
+          if (!syncResponse.ok) {
+            throw new Error('Auth sync failed');
+          }
+
+          const syncData = await syncResponse.json();
+          console.log('✅ Server session established via sync');
+
+          // Set the user data from sync response
+          if (syncData.user) {
+            console.log('✅ Login - got real user data with plan:', syncData.user.plan);
+            setUser(syncData.user);
+            saveUserToStorage(syncData.user);
+          } else {
+            throw new Error('No user data in sync response');
+          }
+        } catch (error) {
+          console.error('Failed to establish server session or fetch user data:', error);
+          // Fallback to simple user
+          const simpleUser: User = {
+            id: data.user.id,
+            email: data.user.email || '',
+            username: data.user.email?.split('@')[0] || 'user',
+            full_name: data.user.user_metadata?.full_name || '',
+            avatar_url: data.user.user_metadata?.avatar_url || undefined,
+            plan: 'free',
+            prompts_used: 0,
+            enhancements_used: 0,
+            api_calls_used: 0,
+            bio: undefined,
+            website: undefined,
+            location: undefined,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          setUser(simpleUser);
+          saveUserToStorage(simpleUser);
+        }
 
         toast({
           title: "Welcome back!",
@@ -382,31 +481,88 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      console.log('🚪 Logout initiated');
       setIsLoading(true);
+
+      // Call server-side logout first to clear session
+      try {
+        console.log('🚪 Calling server logout...');
+        const response = await fetch('/api/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        console.log('🚪 Server logout response:', response.status);
+      } catch (serverError) {
+        console.warn('Server logout failed:', serverError);
+      }
+
+      // Then call Supabase logout
+      console.log('🚪 Calling Supabase logout...');
       await signOut();
+      console.log('🚪 Supabase logout complete');
+
       setUser(null);
       saveUserToStorage(null);
+
+      // Clear any cached data
+      localStorage.removeItem('promptop-user');
+      localStorage.removeItem('promptops.user.profile');
+
+      console.log('🚪 User state cleared, redirecting...');
+
       toast({
         title: "Signed Out",
         description: "You have been successfully signed out.",
       });
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
+
+      // Immediate redirect without delay
+      window.location.href = '/login';
     } catch (error: any) {
       console.error('Logout error:', error);
       setUser(null);
       saveUserToStorage(null);
+      localStorage.removeItem('promptop-user');
+      localStorage.removeItem('promptops.user.profile');
       toast({
         title: "Signed Out",
         description: "You have been signed out.",
       });
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
+      window.location.href = '/login';
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Function to refresh user data from server
+  const refreshUserData = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const syncResponse = await fetch('/api/auth/sync-supabase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            user_id: session.user.id,
+            email: session.user.email
+          })
+        });
+
+        if (syncResponse.ok) {
+          const syncData = await syncResponse.json();
+          console.log('✅ User data refreshed:', syncData.user.email, 'Plan:', syncData.user.plan);
+          setUser(syncData.user);
+          saveUserToStorage(syncData.user);
+          return syncData.user;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+    return null;
   };
 
   const refreshUser = async () => {
@@ -437,7 +593,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SupabaseAuthContext.Provider value={{ user, login, register, logout, refreshUser, isLoading, isConnected }}>
+    <SupabaseAuthContext.Provider value={{ user, login, register, logout, refreshUser, refreshUserData, isLoading, isConnected }}>
       {children}
     </SupabaseAuthContext.Provider>
   );

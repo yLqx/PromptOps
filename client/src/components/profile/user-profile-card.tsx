@@ -111,12 +111,12 @@ export default function UserProfileCard({ showActions = true, compact = false }:
       prompts: {
         used: user.prompts_used || 0,
         limit: userLimits.prompts,
-        percentage: userLimits.prompts === -1 ? 0 : ((user.prompts_used || 0) / userLimits.prompts) * 100
+        percentage: userLimits.prompts === -1 ? 0 : userLimits.prompts ? ((user.prompts_used || 0) / userLimits.prompts) * 100 : 0
       },
       enhancements: {
         used: user.enhancements_used || 0,
         limit: userLimits.enhancements,
-        percentage: userLimits.enhancements === -1 ? 0 : ((user.enhancements_used || 0) / userLimits.enhancements) * 100
+        percentage: userLimits.enhancements === -1 ? 0 : userLimits.enhancements ? ((user.enhancements_used || 0) / userLimits.enhancements) * 100 : 0
       }
     };
   };

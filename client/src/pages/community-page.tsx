@@ -468,7 +468,7 @@ export default function CommunityPage() {
   const hasError = promptsError || postsError;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-black text-gray-100">
       <Header />
 
       <div className="flex h-screen pt-16">

@@ -105,7 +105,7 @@ export default function PromptInteractions({
   // Comment mutation
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
-      const _comment = await addComment(content, promptId, 'prompt' as 'prompt' | 'post');
+      const _comment = await addComment(promptId, 'prompt', content);
       return _comment;
     },
     onSuccess: () => {
@@ -472,7 +472,7 @@ export default function PromptInteractions({
                   </div>
 
                   {/* Replies */}
-                  {comment.replies.map((reply) => (
+                  {comment.replies.map((reply: any) => (
                     <div key={reply.id} className="ml-11 flex items-start gap-3">
                       <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-purple-600 dark:text-purple-400 text-xs font-semibold">

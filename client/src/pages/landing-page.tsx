@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/ui/logo";
 import { Link, useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Brain,
   Rocket,
@@ -32,11 +32,40 @@ import {
   Twitter,
   Linkedin
 } from "lucide-react";
-import { AI_MODELS } from "../../../shared/ai-models";
+import { AI_MODELS } from "@shared/ai-models";
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
   const [chatInput, setChatInput] = useState("");
+  const [visibleElements, setVisibleElements] = useState(new Set<string>());
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Intersection Observer for scroll animations
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisibleElements(prev => new Set(Array.from(prev).concat(entry.target.id)));
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+
+    const elements = document.querySelectorAll('[data-animate]');
+    elements.forEach(el => {
+      if (observerRef.current) {
+        observerRef.current.observe(el);
+      }
+    });
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, []);
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,23 +177,34 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900">
       {/* Navigation Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/50 animate-slide-in-down">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4">
           <div className="flex items-center justify-between">
-            <Logo className="text-white text-sm md:text-base flex-shrink-0" />
+            <div className="transform hover:scale-105 transition-all duration-300 hover:rotate-2">
+              <Logo className="text-white text-sm md:text-base flex-shrink-0" />
+            </div>
 
             <div className="hidden lg:flex items-center gap-6 xl:gap-8">
-              <Link href="/about" className="text-slate-300 hover:text-white transition-colors text-sm font-medium">About</Link>
-              <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors text-sm font-medium">Pricing</Link>
-              <Link href="/terms" className="text-slate-300 hover:text-white transition-colors text-sm font-medium">Terms</Link>
+              <Link href="/about" className="text-slate-300 hover:text-white transition-all duration-300 text-sm font-medium relative group">
+                About
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-400 transition-all duration-300 group-hover:w-full"></span>
+              </Link>
+              <Link href="/pricing" className="text-slate-300 hover:text-white transition-all duration-300 text-sm font-medium relative group">
+                Pricing
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-400 transition-all duration-300 group-hover:w-full"></span>
+              </Link>
+              <Link href="/terms" className="text-slate-300 hover:text-white transition-all duration-300 text-sm font-medium relative group">
+                Terms
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-400 transition-all duration-300 group-hover:w-full"></span>
+              </Link>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
               <Link href="/login">
-                <Button variant="ghost" className="text-slate-300 hover:text-white text-sm px-3 sm:px-4">Login</Button>
+                <Button variant="ghost" className="text-slate-300 hover:text-white text-sm px-3 sm:px-4 transform hover:scale-105 transition-all duration-300">Login</Button>
               </Link>
               <Link href="/register">
-                <Button className="btn-shadow bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 sm:px-4">Sign Up</Button>
+                <Button className="btn-shadow bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 sm:px-4 transform hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300">Sign Up</Button>
               </Link>
             </div>
           </div>
@@ -172,50 +212,81 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-16 md:py-20 pt-20 sm:pt-24 md:pt-32">
+      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-16 md:py-20 pt-20 sm:pt-24 md:pt-32 overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '0s'}}></div>
+          <div className="absolute top-40 right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+          <div className="absolute bottom-20 left-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '4s'}}></div>
+        </div>
+
         <div className="container mx-auto relative z-10 max-w-7xl">
           {/* Header */}
           <div className="text-center mb-16 sm:mb-20">
-            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-6 py-3 mb-8">
-              <Sparkles className="h-4 w-4 text-emerald-400" />
+            <div 
+              className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-6 py-3 mb-8 animate-fade-in-up transform hover:scale-105 transition-transform duration-300"
+              data-animate
+              id="hero-badge"
+            >
+              <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
               <span className="text-emerald-400 text-sm font-medium">AI-Powered Prompt Engineering</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-white mb-8 sm:mb-10 leading-tight px-2">
+            <h1 
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-white mb-8 sm:mb-10 leading-tight px-2 animate-fade-in-up"
+              data-animate
+              id="hero-title"
+              style={{animationDelay: '0.2s'}}
+            >
               Perfect Your{" "}
-              <span className="gradient-text text-drop-shadow-emerald">
+              <span className="gradient-text text-drop-shadow-emerald animate-text-shimmer">
                 AI Prompts
               </span>
             </h1>
-            <p className="text-xl sm:text-2xl md:text-3xl text-slate-300 leading-relaxed max-w-4xl mx-auto px-4 mb-12">
+            <p 
+              className="text-xl sm:text-2xl md:text-3xl text-slate-300 leading-relaxed max-w-4xl mx-auto px-4 mb-12 animate-fade-in-up"
+              data-animate
+              id="hero-subtitle"
+              style={{animationDelay: '0.4s'}}
+            >
               Test, enhance, and optimize your AI prompts with professional tools.
               Get better results from ChatGPT, Claude, and other AI models with our advanced platform.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
-              <div className="flex items-center gap-3 text-slate-300">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+            <div 
+              className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16 animate-fade-in-up"
+              data-animate
+              id="hero-features"
+              style={{animationDelay: '0.6s'}}
+            >
+              <div className="flex items-center gap-3 text-slate-300 transform hover:scale-105 transition-transform duration-300">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
                 <span>No credit card required</span>
               </div>
-              <div className="flex items-center gap-3 text-slate-300">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+              <div className="flex items-center gap-3 text-slate-300 transform hover:scale-105 transition-transform duration-300">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
                 <span>Free tier available</span>
               </div>
-              <div className="flex items-center gap-3 text-slate-300">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+              <div className="flex items-center gap-3 text-slate-300 transform hover:scale-105 transition-transform duration-300">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
                 <span>Enterprise ready</span>
               </div>
             </div>
           </div>
 
           {/* Main Chat Interface */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-12 sm:mb-16">
+          <div 
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-12 sm:mb-16 animate-fade-in-up"
+            data-animate
+            id="chat-interface"
+            style={{animationDelay: '0.8s'}}
+          >
             {/* Model Selection Sidebar */}
             <div className="lg:col-span-1 order-2 lg:order-1">
-              <Card className="glass-effect border-slate-700/50 h-full">
+              <Card className="glass-effect border-slate-700/50 h-full transform hover:scale-[1.02] transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/20">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-white flex items-center gap-2 text-lg">
-                    <Bot className="h-5 w-5 text-emerald-400" />
+                    <Bot className="h-5 w-5 text-emerald-400 animate-pulse" />
                     AI Models
                   </CardTitle>
                   <CardDescription className="text-slate-400 text-sm">
@@ -223,34 +294,37 @@ export default function LandingPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 max-h-64 sm:max-h-80 lg:max-h-96 overflow-y-auto">
-                  {AI_MODELS.slice(0, 8).map((model) => (
+                  {AI_MODELS.slice(0, 8).map((model, index) => (
                     <div
                       key={model.id}
                       onClick={() => setLocation("/login")}
-                      className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-slate-800/30 hover:bg-slate-700/50 cursor-pointer transition-all duration-200 hover:scale-105 border border-slate-700/30 hover:border-emerald-500/50"
+                      className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-slate-800/30 hover:bg-slate-700/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] border border-slate-700/30 hover:border-emerald-500/50 group animate-fade-in-up"
+                      style={{animationDelay: `${1.0 + index * 0.1}s`}}
                     >
                       <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                          model.tier === 'free' ? 'bg-emerald-600' :
-                          model.tier === 'pro' ? 'bg-blue-600' : 'bg-purple-600'
+                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 group-hover:scale-110 ${
+                          model.tier === 'free' ? 'bg-emerald-600 group-hover:bg-emerald-500' :
+                          model.tier === 'pro' ? 'bg-blue-600 group-hover:bg-blue-500' : 'bg-purple-600 group-hover:bg-purple-500'
                         }`}>
                           {model.category === 'general' && <Brain className="h-3 w-3 sm:h-4 sm:w-4 text-white" />}
                           {model.category === 'coding' && <Code className="h-3 w-3 sm:h-4 sm:w-4 text-white" />}
                           {model.category === 'reasoning' && <Target className="h-3 w-3 sm:h-4 sm:w-4 text-white" />}
                           {model.category === 'multimodal' && <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-white" />}
-                          {!['general', 'coding', 'reasoning', 'multimodal'].includes(model.category) && <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-white" />}
+                          {model.category === 'image' && <Palette className="h-3 w-3 sm:h-4 sm:w-4 text-white" />}
+                          {model.category === 'audio' && <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-white" />}
+                          {!['general', 'coding', 'reasoning', 'multimodal', 'image', 'audio'].includes(model.category) && <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-white" />}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-white font-medium text-xs sm:text-sm truncate">{model.name}</h3>
-                          <p className="text-slate-400 text-xs truncate">{model.provider}</p>
+                          <h3 className="text-white font-medium text-xs sm:text-sm truncate group-hover:text-emerald-300 transition-colors">{model.name}</h3>
+                          <p className="text-slate-400 text-xs truncate group-hover:text-slate-300 transition-colors">{model.provider}</p>
                         </div>
                       </div>
                       <Badge
                         variant="outline"
-                        className={`text-xs flex-shrink-0 ml-2 ${
-                          model.tier === 'free' ? 'border-emerald-500/30 text-emerald-400' :
-                          model.tier === 'pro' ? 'border-blue-500/30 text-blue-400' :
-                          'border-purple-500/30 text-purple-400'
+                        className={`text-xs flex-shrink-0 ml-2 transition-all duration-300 ${
+                          model.tier === 'free' ? 'border-emerald-500/30 text-emerald-400 group-hover:border-emerald-400 group-hover:bg-emerald-500/10' :
+                          model.tier === 'pro' ? 'border-blue-500/30 text-blue-400 group-hover:border-blue-400 group-hover:bg-blue-500/10' :
+                          'border-purple-500/30 text-purple-400 group-hover:border-purple-400 group-hover:bg-purple-500/10'
                         }`}
                       >
                         {model.tier}
@@ -259,7 +333,7 @@ export default function LandingPage() {
                   ))}
                   <div
                     onClick={() => setLocation("/login")}
-                    className="text-center p-3 text-emerald-400 hover:text-emerald-300 cursor-pointer text-sm"
+                    className="text-center p-3 text-emerald-400 hover:text-emerald-300 cursor-pointer text-sm transition-all duration-300 hover:scale-105"
                   >
                     View all {AI_MODELS.length} models →
                   </div>
@@ -269,10 +343,10 @@ export default function LandingPage() {
 
             {/* Chat Interface */}
             <div className="lg:col-span-2 order-1 lg:order-2">
-              <Card className="glass-effect border-slate-700/50 h-full">
+              <Card className="glass-effect border-slate-700/50 h-full transform hover:scale-[1.01] transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/10">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-white flex items-center gap-2 text-lg">
-                    <MessageCircle className="h-5 w-5 text-emerald-400" />
+                    <MessageCircle className="h-5 w-5 text-emerald-400 animate-pulse" />
                     Chat Interface
                   </CardTitle>
                   <CardDescription className="text-slate-400 text-sm">
@@ -283,16 +357,16 @@ export default function LandingPage() {
                   {/* Chat Output Area */}
                   <div
                     onClick={() => setLocation("/login")}
-                    className="min-h-48 sm:min-h-56 lg:min-h-64 bg-slate-800/30 rounded-lg p-3 sm:p-4 border border-slate-700/30 hover:border-emerald-500/50 cursor-pointer transition-all duration-200"
+                    className="min-h-48 sm:min-h-56 lg:min-h-64 bg-slate-800/30 rounded-lg p-3 sm:p-4 border border-slate-700/30 hover:border-emerald-500/50 cursor-pointer transition-all duration-500 group hover:shadow-inner hover:shadow-emerald-500/10"
                   >
                     <div className="space-y-3 sm:space-y-4">
-                      {/* Sample conversation */}
-                      <div className="flex items-start space-x-2 sm:space-x-3">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      {/* Sample conversation with animations */}
+                      <div className="flex items-start space-x-2 sm:space-x-3 animate-fade-in-up" style={{animationDelay: '1.2s'}}>
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
                           <span className="text-white text-xs sm:text-sm font-semibold">U</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="bg-slate-700/50 rounded-lg p-2.5 sm:p-3">
+                          <div className="bg-slate-700/50 rounded-lg p-2.5 sm:p-3 group-hover:bg-slate-700/70 transition-colors duration-300">
                             <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
                               Write a creative story about AI and humans working together
                             </p>
@@ -300,12 +374,12 @@ export default function LandingPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-start space-x-2 sm:space-x-3">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="flex items-start space-x-2 sm:space-x-3 animate-fade-in-up" style={{animationDelay: '1.4s'}}>
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
                           <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="bg-emerald-900/20 border border-emerald-500/20 rounded-lg p-2.5 sm:p-3">
+                          <div className="bg-emerald-900/20 border border-emerald-500/20 rounded-lg p-2.5 sm:p-3 group-hover:border-emerald-500/40 transition-colors duration-300">
                             <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
                               In the year 2045, Maya discovered that her AI assistant wasn't just processing data—it was dreaming. Together, they embarked on a journey to bridge the gap between artificial intelligence and human creativity...
                             </p>
@@ -321,7 +395,7 @@ export default function LandingPage() {
 
                   {/* Chat Input Area */}
                   <div className="space-y-3">
-                    <form onSubmit={handleChatSubmit} className="relative">
+                    <form onSubmit={handleChatSubmit} className="relative group">
                       <textarea
                         placeholder="Type your message here... Press Enter to get started"
                         value={chatInput}
@@ -332,11 +406,11 @@ export default function LandingPage() {
                             handleChatSubmit(e);
                           }
                         }}
-                        className="w-full bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 p-3 sm:p-4 rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 resize-none h-20 sm:h-24 text-sm sm:text-base"
+                        className="w-full bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 p-3 sm:p-4 rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 resize-none h-20 sm:h-24 text-sm sm:text-base transition-all duration-300 group-hover:bg-slate-800/70"
                       />
                       <Button
                         type="submit"
-                        className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 bg-emerald-600 hover:bg-emerald-700 p-1.5 sm:p-2 rounded-lg"
+                        className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 bg-emerald-600 hover:bg-emerald-700 p-1.5 sm:p-2 rounded-lg transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-emerald-500/30"
                       >
                         <Send className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
@@ -345,7 +419,7 @@ export default function LandingPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm">
                       <div className="flex items-center space-x-2 sm:space-x-4">
                         <span className="text-slate-400">Selected:</span>
-                        <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
+                        <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs animate-pulse">
                           GPT-4 Turbo
                         </Badge>
                       </div>
@@ -359,21 +433,28 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 max-w-4xl mx-auto px-4">
+          {/* Enhanced Stats Row */}
+          <div 
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 max-w-4xl mx-auto px-4 animate-fade-in-up"
+            data-animate
+            id="stats-section"
+            style={{animationDelay: '1.6s'}}
+          >
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className="text-center animate-fade-in-up"
-                style={{animationDelay: `${index * 0.1}s`}}
+                className="text-center group cursor-pointer transform hover:scale-110 transition-all duration-500"
+                style={{animationDelay: `${1.8 + index * 0.1}s`}}
               >
-                <div className="flex items-center justify-center mb-2 text-emerald-400">
-                  {stat.icon}
+                <div className="flex items-center justify-center mb-2 text-emerald-400 group-hover:text-emerald-300 transition-colors duration-300">
+                  <div className="group-hover:animate-bounce">
+                    {stat.icon}
+                  </div>
                 </div>
-                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2 group-hover:text-emerald-300 transition-colors duration-300">
                   {stat.value}
                 </div>
-                <div className="text-slate-400 text-xs sm:text-sm">{stat.label}</div>
+                <div className="text-slate-400 text-xs sm:text-sm group-hover:text-slate-300 transition-colors duration-300">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -385,16 +466,26 @@ export default function LandingPage() {
 
 
       {/* AI Enhancements Section */}
-      <section className="py-20 px-4 bg-slate-900/50">
-        <div className="container mx-auto">
-          <div className="text-center mb-16 animate-fade-in-up">
-            <Badge className="mb-4 bg-purple-500/20 text-purple-300 border-purple-500/30">
-              <Wand2 className="h-4 w-4 mr-2" />
+      <section className="py-20 px-4 bg-slate-900/50 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-20 -left-40 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl animate-morph-bg"></div>
+          <div className="absolute bottom-20 -right-40 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl animate-morph-bg" style={{animationDelay: '2s'}}></div>
+        </div>
+
+        <div className="container mx-auto relative z-10">
+          <div 
+            className="text-center mb-16 animate-staggered-fade-in"
+            data-animate
+            id="ai-enhancements-header"
+          >
+            <Badge className="mb-4 bg-purple-500/20 text-purple-300 border-purple-500/30 transform hover:scale-105 transition-transform duration-300">
+              <Wand2 className="h-4 w-4 mr-2 animate-pulse" />
               AI-Powered Features
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
               5 Powerful{" "}
-              <span className="gradient-text text-drop-shadow-purple">
+              <span className="gradient-text text-drop-shadow-purple animate-text-shimmer">
                 AI Enhancements
               </span>
             </h2>
@@ -404,35 +495,63 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto"
+            data-animate
+            id="enhancements-grid"
+          >
             {enhancements.map((enhancement, index) => (
               <Card
                 key={index}
-                className="glass-effect border-slate-700/50 hover:border-emerald-500/50 card-hover animate-fade-in-up"
-                style={{animationDelay: `${index * 0.1}s`}}
+                className="glass-effect border-slate-700/50 hover:border-emerald-500/50 group cursor-pointer animate-staggered-fade-in"
+                style={{
+                  animationDelay: `${0.2 + index * 0.1}s`,
+                  transform: 'translateY(20px)',
+                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-12px) rotateX(5deg) rotateY(2deg)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0) rotateX(0) rotateY(0)';
+                }}
               >
                 <CardContent className="p-6">
                   <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 rounded-lg bg-slate-800/50 flex items-center justify-center mr-4">
-                      {enhancement.icon}
+                    <div className="w-12 h-12 rounded-lg bg-slate-800/50 flex items-center justify-center mr-4 group-hover:bg-slate-700/50 transition-all duration-500 group-hover:scale-110 group-hover:animate-glow-pulse">
+                      <div className="group-hover:animate-icon-bounce">
+                        {enhancement.icon}
+                      </div>
                     </div>
-                    <h3 className="text-xl font-semibold text-white">{enhancement.title}</h3>
+                    <h3 className="text-xl font-semibold text-white group-hover:text-emerald-300 transition-colors duration-300">{enhancement.title}</h3>
                   </div>
-                  <p className="text-slate-300 leading-relaxed">{enhancement.description}</p>
+                  <p className="text-slate-300 leading-relaxed group-hover:text-slate-100 transition-colors duration-300">{enhancement.description}</p>
                 </CardContent>
               </Card>
             ))}
 
-            {/* CTA Card */}
-            <Card className="glass-effect border-emerald-500/50 card-hover animate-fade-in-up bg-gradient-to-br from-emerald-900/20 to-emerald-800/20" style={{animationDelay: '0.5s'}}>
+            {/* CTA Card with enhanced animations */}
+            <Card 
+              className="glass-effect border-emerald-500/50 group cursor-pointer bg-gradient-to-br from-emerald-900/20 to-emerald-800/20 animate-staggered-fade-in transform hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/30" 
+              style={{
+                animationDelay: '0.7s',
+                transform: 'translateY(20px)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-12px) scale(1.05) rotateX(5deg)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0) scale(1) rotateX(0)';
+              }}
+            >
               <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 rounded-lg bg-emerald-600 flex items-center justify-center mx-auto mb-4">
-                  <ChevronRight className="h-6 w-6 text-white" />
+                <div className="w-12 h-12 rounded-lg bg-emerald-600 flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-500 transition-all duration-500 group-hover:animate-glow-pulse">
+                  <ChevronRight className="h-6 w-6 text-white group-hover:animate-icon-bounce" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Try All 5 Now</h3>
-                <p className="text-slate-300 mb-4">Experience the power of AI-enhanced prompts</p>
+                <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-emerald-300 transition-colors duration-300">Try All 5 Now</h3>
+                <p className="text-slate-300 mb-4 group-hover:text-slate-100 transition-colors duration-300">Experience the power of AI-enhanced prompts</p>
                 <Link href="/register">
-                  <Button className="btn-shadow bg-emerald-600 hover:bg-emerald-700 w-full">
+                  <Button className="btn-shadow bg-emerald-600 hover:bg-emerald-700 w-full transform hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/30">
                     Get Started Free
                   </Button>
                 </Link>
@@ -443,31 +562,60 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-slate-800/30">
-        <div className="container mx-auto">
-          <div className="text-center mb-16 animate-fade-in-up">
+      <section className="py-20 px-4 bg-slate-800/30 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-10 left-20 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl animate-morph-bg" style={{animationDelay: '1s'}}></div>
+          <div className="absolute bottom-10 right-20 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl animate-morph-bg" style={{animationDelay: '3s'}}></div>
+        </div>
+
+        <div className="container mx-auto relative z-10">
+          <div 
+            className="text-center mb-16 animate-staggered-fade-in"
+            data-animate
+            id="features-header"
+          >
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
               Everything You Need for{" "}
-              <span className="gradient-text">Prompt Excellence</span>
+              <span className="gradient-text animate-text-shimmer">Prompt Excellence</span>
             </h2>
             <p className="text-xl text-slate-300 max-w-3xl mx-auto">
               Professional tools and insights to make your AI prompts more effective and reliable.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto"
+            data-animate
+            id="features-grid"
+          >
             {features.map((feature, index) => (
               <Card
                 key={index}
-                className="glass-effect border-slate-700/50 hover:border-emerald-500/50 card-hover animate-fade-in-up"
-                style={{animationDelay: `${index * 0.1}s`}}
+                className="glass-effect border-slate-700/50 hover:border-emerald-500/50 group cursor-pointer animate-staggered-fade-in"
+                style={{
+                  animationDelay: `${0.1 + index * 0.15}s`,
+                  transform: 'translateY(30px)',
+                  transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-15px) scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 25px 50px rgba(16, 185, 129, 0.15), 0 0 30px rgba(16, 185, 129, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                  e.currentTarget.style.boxShadow = '';
+                }}
               >
                 <CardContent className="p-6">
-                  <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 animate-float`}>
-                    {feature.icon}
+                  <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-500 animate-card-float`}
+                       style={{animationDelay: `${index * 0.2}s`}}>
+                    <div className="group-hover:animate-icon-bounce">
+                      {feature.icon}
+                    </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-3">{feature.title}</h3>
-                  <p className="text-slate-300 leading-relaxed">{feature.description}</p>
+                  <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-emerald-300 transition-colors duration-300">{feature.title}</h3>
+                  <p className="text-slate-300 leading-relaxed group-hover:text-slate-100 transition-colors duration-300">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -592,10 +740,11 @@ export default function LandingPage() {
                   <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center mx-auto mb-2">
                     {model.category === 'general' && <Brain className="h-4 w-4 text-white" />}
                     {model.category === 'coding' && <Code className="h-4 w-4 text-white" />}
-                    {model.category === 'creative' && <Palette className="h-4 w-4 text-white" />}
+                    {model.category === 'image' && <Palette className="h-4 w-4 text-white" />}
                     {model.category === 'reasoning' && <Target className="h-4 w-4 text-white" />}
                     {model.category === 'multimodal' && <Eye className="h-4 w-4 text-white" />}
-                    {!['general', 'coding', 'creative', 'reasoning', 'multimodal'].includes(model.category) && <Bot className="h-4 w-4 text-white" />}
+                    {model.category === 'audio' && <Bot className="h-4 w-4 text-white" />}
+                    {!['general', 'coding', 'image', 'reasoning', 'multimodal', 'audio'].includes(model.category) && <Bot className="h-4 w-4 text-white" />}
                   </div>
                   <h3 className="text-sm font-semibold text-white mb-1">{model.name}</h3>
                   <p className="text-xs text-slate-400">{model.provider}</p>
@@ -679,7 +828,7 @@ export default function LandingPage() {
               <CardHeader className="text-center pb-8">
                 <CardTitle className="text-2xl font-bold text-white">Pro</CardTitle>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold text-white">$15</span>
+                  <span className="text-4xl font-bold text-white">$19</span>
                   <span className="text-slate-400">/month</span>
                 </div>
                 <p className="text-slate-400 mt-2">For professionals and creators</p>

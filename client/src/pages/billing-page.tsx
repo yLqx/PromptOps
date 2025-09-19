@@ -2,7 +2,6 @@ import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useUserUsage } from "@/hooks/use-user-usage";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
-import Footer from "@/components/layout/footer";
 import PricingCards from "@/components/billing/pricing-cards";
 import SubscriptionManager from "@/components/billing/subscription-manager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +35,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-black text-gray-100">
       <Header />
       
       <div className="flex h-screen pt-16">
@@ -44,8 +43,8 @@ export default function BillingPage() {
         
         <main className="flex-1 overflow-auto p-6">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Billing & Plans</h1>
-            <p className="text-muted-foreground">Manage your subscription and billing information</p>
+            <h1 className="text-3xl font-bold text-gray-100 mb-2">Billing & Plans</h1>
+            <p className="text-gray-400">Manage your subscription and billing information</p>
           </div>
 
           {/* Current Plan Overview */}
@@ -53,11 +52,11 @@ export default function BillingPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Current Plan</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <CreditCard className="h-4 w-4 text-gray-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-['DM_Sans']">{planNames[plan as keyof typeof planNames] || "Free Plan"}</div>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-gray-400 mt-1">
                   {planPrices[plan as keyof typeof planPrices] || "$0"}/month
                 </p>
                 <Badge className="mt-2" variant={plan === "free" ? "secondary" : "default"}>
@@ -69,7 +68,7 @@ export default function BillingPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Usage</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                <AlertTriangle className="h-4 w-4 text-gray-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-emerald-400">
@@ -77,7 +76,7 @@ export default function BillingPage() {
                     promptsLimit === Infinity ? '∞' : promptsLimit
                   }
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-gray-400 mt-2">
                   Prompt tests used this month
                 </p>
               </CardContent>
@@ -86,13 +85,13 @@ export default function BillingPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Next Billing</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-gray-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {plan === "free" ? "N/A" : "Next Month"}
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-gray-400 mt-2">
                   {plan === "free" ? "No billing cycle" : "Automatic renewal"}
                 </p>
               </CardContent>
@@ -138,7 +137,7 @@ export default function BillingPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-gray-400">
                   <p>No billing history available</p>
                   <p className="text-sm mt-2">Billing history will appear here after your first payment</p>
                 </div>
@@ -147,8 +146,6 @@ export default function BillingPage() {
           )}
         </main>
       </div>
-      
-      <Footer />
     </div>
   );
 }

@@ -153,6 +153,36 @@ INSERT INTO public.categories (name, description, color) VALUES
 ('marketing', 'Marketing and advertising prompts', '#ea580c')
 ON CONFLICT (name) DO NOTHING;
 
+-- 11. Create subscription_limits table
+CREATE TABLE IF NOT EXISTS public.subscription_limits (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid()::VARCHAR,
+  tier plan NOT NULL UNIQUE,
+  prompts_per_month INTEGER NOT NULL,
+  ai_enhancements_per_month INTEGER NOT NULL,
+  prompt_slots INTEGER NOT NULL, -- -1 means unlimited
+  api_calls_per_month INTEGER DEFAULT -1, -- -1 means unlimited
+  max_team_members INTEGER DEFAULT 1,
+  priority_support BOOLEAN DEFAULT false,
+  custom_integrations BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- Insert default subscription limits
+INSERT INTO public.subscription_limits (tier, prompts_per_month, ai_enhancements_per_month, prompt_slots, api_calls_per_month, max_team_members, priority_support, custom_integrations) VALUES
+('free', 15, 5, 25, 50, 1, false, false),
+('pro', 1000, 150, 500, 2000, 1, true, false),
+('team', 7500, 2000, -1, -1, 10, true, true)
+ON CONFLICT (tier) DO UPDATE SET
+  prompts_per_month = EXCLUDED.prompts_per_month,
+  ai_enhancements_per_month = EXCLUDED.ai_enhancements_per_month,
+  prompt_slots = EXCLUDED.prompt_slots,
+  api_calls_per_month = EXCLUDED.api_calls_per_month,
+  max_team_members = EXCLUDED.max_team_members,
+  priority_support = EXCLUDED.priority_support,
+  custom_integrations = EXCLUDED.custom_integrations,
+  updated_at = NOW();
+
 -- 12. Enable Row Level Security (RLS)
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
@@ -160,6 +190,7 @@ ALTER TABLE public.team_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prompts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prompt_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscription_limits ENABLE ROW LEVEL SECURITY;
 
 -- 13. Create RLS policies for users table
 CREATE POLICY "Users can view their own profile" ON public.users

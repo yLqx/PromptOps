@@ -38,7 +38,10 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values({
+        id: crypto.randomUUID(),
+        ...insertUser
+      })
       .returning();
     return user;
   }
@@ -70,30 +73,16 @@ export class DatabaseStorage implements IStorage {
     return result[0] || null;
   }
 
-  async verifyPassword(email: string, password: string): Promise<boolean> {
-    const user = await this.getUserByEmail(email);
-    if (!user) return false;
-    
-    // Using same hashing approach as auth.ts
-    const crypto = await import("crypto");
-    const [salt, hash] = user.password.split(":");
-    const verifyHash = crypto.scryptSync(password, salt, 64).toString("hex");
-    return hash === verifyHash;
+  async verifyPassword(_email: string, _password: string): Promise<boolean> {
+    // Password verification not implemented for database storage
+    // This would require a separate passwords table or auth service
+    return false;
   }
 
-  async updateUserPassword(id: string, newPassword: string): Promise<User> {
-    // Hash the new password using same approach as auth.ts
-    const crypto = await import("crypto");
-    const salt = crypto.randomBytes(16).toString("hex");
-    const hash = crypto.scryptSync(newPassword, salt, 64).toString("hex");
-    const hashedPassword = salt + ":" + hash;
-    
-    const [user] = await db
-      .update(users)
-      .set({ password: hashedPassword })
-      .where(eq(users.id, id))
-      .returning();
-    return user;
+  async updateUserPassword(_id: string, _newPassword: string): Promise<void> {
+    // Password updates not implemented for database storage
+    // This would require a separate passwords table or auth service
+    throw new Error("Password updates not supported in database storage");
   }
 
   async updateUserPlan(id: string, plan: "free" | "pro" | "team"): Promise<User> {
@@ -254,12 +243,15 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));
   }
 
-  async createSupportTicket(userId: string, insertTicket: InsertSupportTicket): Promise<SupportTicket> {
+  async createSupportTicket(insertTicket: InsertSupportTicket & { userId: string }): Promise<SupportTicket> {
     const [ticket] = await db
       .insert(supportTickets)
       .values({
-        ...insertTicket,
-        userId: userId,
+        subject: insertTicket.subject,
+        description: insertTicket.description,
+        priority: insertTicket.priority,
+        category: insertTicket.category,
+        userId: insertTicket.userId,
       })
       .returning();
     return ticket;

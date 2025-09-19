@@ -2,7 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/ui/logo";
+import { AnimatedNav } from "@/components/ui/animated-nav";
+import { Footer } from "@/components/ui/footer";
 import { Link } from "wouter";
+import { useScrollAnimations } from "@/hooks/use-scroll-animations";
 import { 
   ArrowLeft, 
   Mail, 
@@ -21,6 +24,7 @@ import {
 } from "lucide-react";
 
 export default function ContactPage() {
+  useScrollAnimations();
   const contactMethods = [
     {
       icon: <Mail className="h-8 w-8 text-emerald-400" />,
@@ -72,53 +76,37 @@ export default function ContactPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900">
-      {/* Navigation Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/">
-              <Logo className="text-white" />
-            </Link>
-            
-            <div className="hidden md:flex items-center gap-8">
-              <Link href="/features" className="text-slate-300 hover:text-white transition-colors">Features</Link>
-              <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">Pricing</Link>
-              <Link href="/about" className="text-slate-300 hover:text-white transition-colors">About</Link>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Link href="/login">
-                <Button variant="outline" className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button className="bg-emerald-600 hover:bg-emerald-700">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl animate-morph-bg"></div>
+        <div className="absolute top-40 right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-morph-bg" style={{animationDelay: '2s'}}></div>
+        <div className="absolute bottom-20 left-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-morph-bg" style={{animationDelay: '4s'}}></div>
+      </div>
+
+      <AnimatedNav currentPage="contact" />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
+      <section className="pt-32 pb-20 px-4 relative z-10">
         <div className="container mx-auto text-center">
-          <div className="w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <MessageCircle className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-            Get in <span className="text-emerald-400">Touch</span>
-          </h1>
-          <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-8">
-            Have questions about PromptOp? Want to discuss enterprise solutions? 
-            Our team is here to help you succeed with AI prompt management.
-          </p>
-          <div className="flex items-center justify-center gap-4">
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 px-4 py-2">
-              <Clock className="h-4 w-4 mr-2" />
+          <div 
+            className="animate-fade-in-up"
+            data-animate
+            id="contact-hero"
+          >
+            <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+              <MessageCircle className="h-8 w-8 text-white" />
+            </div>
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+              Get in <span className="text-emerald-400 animate-text-shimmer">Touch</span>
+            </h1>
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-8">
+              Have questions about PromptOp? Want to discuss enterprise solutions? 
+              Our team is here to help you succeed with AI prompt management.
+            </p>
+            <div className="flex items-center justify-center gap-4">
+              <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 px-4 py-2 transform transition-all duration-300 hover:scale-105">
+                <Clock className="h-4 w-4 mr-2" />
               24h Response Time
             </Badge>
             <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-2">
@@ -127,7 +115,8 @@ export default function ContactPage() {
             </Badge>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
       {/* Contact Methods */}
       <section className="py-20 px-4">

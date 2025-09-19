@@ -2,29 +2,35 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Edit, Play, Check, Crown } from "lucide-react";
 
+interface DashboardStats {
+  totalPrompts: number;
+  runsToday: number;
+  successRate: number;
+}
+
 export default function StatsCards() {
-  const { data: stats = { totalPrompts: 0, runsToday: 0, successRate: 0 } } = useQuery({
+  const { data: stats = { totalPrompts: 0, runsToday: 0, successRate: 0 } as DashboardStats } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard-stats"],
   });
 
   const cards = [
     {
       title: "Total Prompts",
-      value: stats?.totalPrompts || 0,
+      value: stats.totalPrompts || 0,
       icon: Edit,
       iconColor: "text-emerald-400",
       bgColor: "bg-emerald-500 bg-opacity-20",
     },
     {
       title: "Runs Today",
-      value: stats?.runsToday || 0,
+      value: stats.runsToday || 0,
       icon: Play,
       iconColor: "text-blue-400",
       bgColor: "bg-blue-500 bg-opacity-20",
     },
     {
       title: "Success Rate",
-      value: `${stats?.successRate || 0}%`,
+      value: `${stats.successRate || 0}%`,
       icon: Check,
       iconColor: "text-green-400",
       bgColor: "bg-green-500 bg-opacity-20",

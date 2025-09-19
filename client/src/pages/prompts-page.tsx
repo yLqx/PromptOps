@@ -5,7 +5,6 @@ import { useUserUsage } from "@/hooks/use-user-usage";
 import { apiRequest } from "@/lib/queryClient";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
-import Footer from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -147,7 +146,7 @@ export default function PromptsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-black text-gray-100">
       <Header />
       
       <div className="flex h-screen pt-16">
@@ -156,8 +155,8 @@ export default function PromptsPage() {
         <main className="flex-1 overflow-auto p-6">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2 font-['DM_Sans']">My Prompts</h1>
-              <p className="text-muted-foreground font-['DM_Sans']">Create, edit, and manage your AI prompts</p>
+              <h1 className="text-3xl font-bold text-gray-100 mb-2 font-['DM_Sans']">My Prompts</h1>
+              <p className="text-gray-400 font-['DM_Sans']">Create, edit, and manage your AI prompts</p>
               {user && (
                 <div className="mt-2">
                   <Badge className="text-sm bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-['DM_Sans'] font-semibold">
@@ -227,12 +226,12 @@ export default function PromptsPage() {
 
           {isLoading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading prompts...</p>
+              <p className="text-gray-400">Loading prompts...</p>
             </div>
           ) : prompts.length === 0 ? (
             <div className="text-center py-16">
               <h3 className="text-xl font-semibold mb-2">No prompts yet</h3>
-              <p className="text-muted-foreground mb-4">Create your first prompt to get started</p>
+              <p className="text-gray-400 mb-4">Create your first prompt to get started</p>
               <Button onClick={() => setIsCreateOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Your First Prompt
@@ -245,7 +244,7 @@ export default function PromptsPage() {
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <CardTitle className="text-lg text-foreground">{prompt.title}</CardTitle>
+                        <CardTitle className="text-lg text-gray-100">{prompt.title}</CardTitle>
                         {prompt.description && (
                           <CardDescription className="mt-1">
                             {prompt.description}
@@ -264,7 +263,7 @@ export default function PromptsPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                    <p className="text-sm text-gray-400 mb-4 line-clamp-3">
                       {prompt.content}
                     </p>
                     <div className="flex gap-2">
@@ -371,8 +370,6 @@ export default function PromptsPage() {
           </Dialog>
         </main>
       </div>
-      
-      <Footer />
     </div>
   );
 }

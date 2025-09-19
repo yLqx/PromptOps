@@ -32,8 +32,8 @@ export function UsageDisplay() {
   }
 
   // Helper function to format the usage display
-  const formatUsageDisplay = (used: number, limit: string | number): string => {
-    if (limit === "unlimited") return `${used}/unlimited`;
+  const formatUsageDisplay = (used: number, limit: string | number | undefined): string => {
+    if (!limit || limit === "unlimited") return `${used}/unlimited`;
     return `${used}/${limit}`;
   };
 

@@ -196,11 +196,11 @@ export default function CommunityHub() {
     );
   };
 
-  const filteredPosts = posts.filter(post =>
+  const filteredPosts = posts.filter((post: any) =>
     searchQuery === "" || 
     post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    post.tags.some((tag: any) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -301,7 +301,7 @@ export default function CommunityHub() {
                   </Link>
                 </div>
               ) : (
-                filteredPosts.map((post) => {
+                filteredPosts.map((post: any) => {
                   const categoryInfo = categoryConfig[post.category as keyof typeof categoryConfig];
                   const CategoryIcon = categoryInfo?.icon || Users;
                   const displayName = getUserDisplayName(post.user, post.is_anonymous);
@@ -346,7 +346,7 @@ export default function CommunityHub() {
                         {/* Tags */}
                         {post.tags.length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-4">
-                            {post.tags.slice(0, 4).map((tag, index) => (
+                            {post.tags.slice(0, 4).map((tag: any, index: any) => (
                               <Badge key={index} variant="secondary" className="text-xs bg-slate-700/50 text-slate-300">
                                 #{tag}
                               </Badge>
